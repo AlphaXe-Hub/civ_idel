@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GameSpeed",
+  "type": "object",
+  "properties": {
+    "timeScale": {
+      "type": "number",
+      "description": "全局时间倍率：被动产出按倍率加速，研究/建筑升级/进化仪式耗时按 1/timeScale 缩短。建议调试 2～20，正式服保持 1。",
+      "minimum": 0.01,
+      "maximum": 100,
+      "default": 1
+    }
+  },
+  "required": ["timeScale"],
+  "additionalProperties": false
+}

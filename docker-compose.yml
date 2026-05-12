@@ -1,0 +1,26 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      SQLITE_PATH: /data/game.db
+      NODE_ENV: production
+    volumes:
+      - civ_sqlite:/data
+    expose:
+      - "3001"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "18080:80"
+    volumes:
+      - ./config/game-speed.json:/usr/share/nginx/html/game-speed.json:ro
+    depends_on:
+      - api
+
+volumes:
+  civ_sqlite:

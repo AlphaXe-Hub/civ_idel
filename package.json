@@ -1,0 +1,17 @@
+{
+  "name": "civ-idle",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @civ-idle/game-core && npm run build -w @civ-idle/api && npm run build -w @civ-idle/web",
+    "dev:web": "npm run dev -w @civ-idle/web",
+    "dev:api": "npm run build -w @civ-idle/game-core && npm run dev -w @civ-idle/api",
+    "test": "npm run test -w @civ-idle/game-core"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
