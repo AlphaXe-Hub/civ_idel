@@ -22,6 +22,7 @@ import type { GameState, BuildingId, TechId } from "@civ-idle/game-core";
 import { defineStore } from "pinia";
 import { ref, shallowRef } from "vue";
 import { apiFetch } from "../api/client";
+import { i18n, translateErrorReason } from "../i18n";
 
 export const useGameStore = defineStore("game", () => {
   const state = shallowRef<GameState | null>(null);
@@ -77,16 +78,20 @@ export const useGameStore = defineStore("game", () => {
           t,
         );
         state.value = s;
+        const minutes = Math.floor(appliedMs / 60000);
         if (appliedMs > 5000 && completedSummary.length) {
-          offlineMessage.value = `离线约 ${Math.floor(appliedMs / 60000)} 分钟\n${completedSummary.join("\n")}`;
+          offlineMessage.value = i18n.global.t("offline.withBody", {
+            minutes,
+            body: completedSummary.join("\n"),
+          });
         } else if (appliedMs > 5000) {
-          offlineMessage.value = `离线收益已结算（约 ${Math.floor(appliedMs / 60000)} 分钟）`;
+          offlineMessage.value = i18n.global.t("offline.noBody", { minutes });
         }
       }
       lastTickGameMs.value = state.value!.lastSyncedAt;
       startLoops();
     } catch (e) {
-      syncError.value = e instanceof Error ? e.message : "加载失败";
+      syncError.value = e instanceof Error ? e.message : i18n.global.t("errors.load_failed");
     } finally {
       loading.value = false;
     }
@@ -113,7 +118,7 @@ export const useGameStore = defineStore("game", () => {
       await apiFetch("/save", { method: "PUT", body: JSON.stringify({ save: payload }) });
       syncError.value = null;
     } catch (e) {
-      syncError.value = e instanceof Error ? e.message : "同步失败";
+      syncError.value = e instanceof Error ? e.message : i18n.global.t("errors.sync_failed");
     }
   }
 
@@ -127,7 +132,7 @@ export const useGameStore = defineStore("game", () => {
     if (!s) return;
     const r = startResearch(s, techId, nowMs());
     if (r.ok) patch(r.state);
-    else alert(r.reason);
+    else alert(translateErrorReason(r.reason));
   }
 
   function upgradeBuilding(id: BuildingId) {
@@ -135,7 +140,7 @@ export const useGameStore = defineStore("game", () => {
     if (!s) return;
     const r = startBuildingUpgrade(s, id, nowMs());
     if (r.ok) patch(r.state);
-    else alert(r.reason);
+    else alert(translateErrorReason(r.reason));
   }
 
   function evolve() {
@@ -143,7 +148,7 @@ export const useGameStore = defineStore("game", () => {
     if (!s) return;
     const r = startEvolution(s, nowMs());
     if (r.ok) patch(r.state);
-    else alert(r.reason);
+    else alert(translateErrorReason(r.reason));
   }
 
   function dismissOffline() {

@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
+import { SUPPORTED_LOCALES, setAppLocale, type AppLocale } from "../i18n";
 import { useAuthStore } from "../stores/auth";
 
+const { t, locale } = useI18n();
 const router = useRouter();
 const auth = useAuthStore();
 const username = ref("");
@@ -10,9 +13,13 @@ const password = ref("");
 const mode = ref<"login" | "register">("login");
 const busy = ref(false);
 
-const title = computed(() => (mode.value === "login" ? "登录" : "注册"));
+const title = computed(() => (mode.value === "login" ? t("login.login") : t("login.register")));
 
 const localError = ref<string | null>(null);
+
+function onLocaleChange(ev: Event) {
+  setAppLocale((ev.target as HTMLSelectElement).value as AppLocale);
+}
 
 async function submit() {
   busy.value = true;
@@ -22,7 +29,7 @@ async function submit() {
     else await auth.register(username.value, password.value);
     await router.push("/game");
   } catch (e) {
-    localError.value = e instanceof Error ? e.message : "失败";
+    localError.value = e instanceof Error ? e.message : t("login.fail");
   } finally {
     busy.value = false;
   }
@@ -36,9 +43,21 @@ async function submit() {
     <div
       class="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-md"
     >
+      <div class="mb-4 flex justify-end">
+        <label class="flex items-center gap-2 text-xs text-slate-400">
+          <span>{{ t("game.langLabel") }}</span>
+          <select
+            class="rounded-md border border-white/10 bg-black/30 px-2 py-1 text-slate-200 outline-none"
+            :value="locale"
+            @change="onLocaleChange"
+          >
+            <option v-for="opt in SUPPORTED_LOCALES" :key="opt.code" :value="opt.code">{{ opt.native }}</option>
+          </select>
+        </label>
+      </div>
       <div class="mb-6 text-center text-3xl">🏛️</div>
-      <h1 class="mb-1 text-center text-2xl font-semibold tracking-tight text-white">文明放置</h1>
-      <p class="mb-8 text-center text-sm text-slate-400">Civ Idle · Melvor 式节奏</p>
+      <h1 class="mb-1 text-center text-2xl font-semibold tracking-tight text-white">{{ t("login.title") }}</h1>
+      <p class="mb-8 text-center text-sm text-slate-400">{{ t("login.subtitle") }}</p>
 
       <div class="mb-6 flex rounded-lg bg-black/30 p-1">
         <button
@@ -47,7 +66,7 @@ async function submit() {
           :class="mode === 'login' ? 'bg-indigo-600 text-white' : 'text-slate-400'"
           @click="mode = 'login'"
         >
-          登录
+          {{ t("login.login") }}
         </button>
         <button
           type="button"
@@ -55,13 +74,15 @@ async function submit() {
           :class="mode === 'register' ? 'bg-indigo-600 text-white' : 'text-slate-400'"
           @click="mode = 'register'"
         >
-          注册
+          {{ t("login.register") }}
         </button>
       </div>
 
       <form class="space-y-4" @submit.prevent="submit">
         <div>
-          <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">用户名</label>
+          <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">{{
+            t("login.username")
+          }}</label>
           <input
             v-model="username"
             autocomplete="username"
@@ -70,7 +91,9 @@ async function submit() {
           />
         </div>
         <div>
-          <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">密码</label>
+          <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">{{
+            t("login.password")
+          }}</label>
           <input
             v-model="password"
             type="password"
@@ -85,7 +108,7 @@ async function submit() {
           :disabled="busy"
           class="w-full rounded-lg bg-indigo-600 py-2.5 font-medium text-white shadow-lg transition hover:bg-indigo-500 disabled:opacity-50"
         >
-          {{ busy ? "请稍候…" : title }}
+          {{ busy ? t("login.submitBusy") : title }}
         </button>
       </form>
     </div>

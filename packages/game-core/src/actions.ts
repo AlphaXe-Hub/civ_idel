@@ -29,11 +29,11 @@ export function startResearch(
   nowMs: number,
 ): { ok: true; state: GameState } | { ok: false; reason: string } {
   const s = cloneState(state);
-  if (!canStartAction(s)) return { ok: false, reason: "队列已满" };
-  if (s.techStatus[techId] !== "available") return { ok: false, reason: "科技不可用" };
+  if (!canStartAction(s)) return { ok: false, reason: "queue_full" };
+  if (s.techStatus[techId] !== "available") return { ok: false, reason: "tech_unavailable" };
   const tech = TECH_MAP[techId];
-  if (eraIndex(s.currentEra) < eraIndex(tech.minEra)) return { ok: false, reason: "时代不足" };
-  if (!canPay(s, tech.cost)) return { ok: false, reason: "资源不足" };
+  if (eraIndex(s.currentEra) < eraIndex(tech.minEra)) return { ok: false, reason: "era_locked" };
+  if (!canPay(s, tech.cost)) return { ok: false, reason: "insufficient_resources" };
   payCost(s, tech.cost);
   s.techStatus[techId] = "researching";
   const action: ActiveAction = {
@@ -53,13 +53,13 @@ export function startBuildingUpgrade(
   nowMs: number,
 ): { ok: true; state: GameState } | { ok: false; reason: string } {
   const s = cloneState(state);
-  if (!canStartAction(s)) return { ok: false, reason: "队列已满" };
+  if (!canStartAction(s)) return { ok: false, reason: "queue_full" };
   const b = BUILDING_MAP[buildingId];
-  if (eraIndex(s.currentEra) < eraIndex(b.minEra)) return { ok: false, reason: "时代不足" };
+  if (eraIndex(s.currentEra) < eraIndex(b.minEra)) return { ok: false, reason: "era_locked" };
   const from = buildingLevel(s, buildingId);
-  if (from <= 0) return { ok: false, reason: "建筑未解锁" };
+  if (from <= 0) return { ok: false, reason: "building_locked" };
   const cost = b.upgradeCost(from);
-  if (!canPay(s, cost)) return { ok: false, reason: "资源不足" };
+  if (!canPay(s, cost)) return { ok: false, reason: "insufficient_resources" };
   payCost(s, cost);
   const action: ActiveAction = {
     id: newActionId(),
@@ -100,14 +100,14 @@ export function canEvolve(state: GameState): {
   target?: NonNullable<ReturnType<typeof nextEra>>;
 } {
   const target = nextEra(state.currentEra);
-  if (!target) return { ok: false, reason: "已达最高时代" };
-  if (state.evolutionRitual) return { ok: false, reason: "进化仪式进行中" };
-  if (!meetsEvolveRequirements(state, target)) return { ok: false, reason: "未满足进化条件" };
+  if (!target) return { ok: false, reason: "evolve_max_era" };
+  if (state.evolutionRitual) return { ok: false, reason: "evolve_ritual_active" };
+  if (!meetsEvolveRequirements(state, target)) return { ok: false, reason: "evolve_requirements" };
   const cur = ERA_MAP[state.currentEra];
   for (const [k, v] of Object.entries(cur.evolveCost)) {
     if (!v) continue;
     const rid = k as keyof GameState["resources"];
-    if (getResource(state, rid).lt(v)) return { ok: false, reason: "仪式资源不足" };
+    if (getResource(state, rid).lt(v)) return { ok: false, reason: "evolve_insufficient_resources" };
   }
   return { ok: true, target };
 }
@@ -117,10 +117,10 @@ export function startEvolution(
   nowMs: number,
 ): { ok: true; state: GameState } | { ok: false; reason: string } {
   const check = canEvolve(state);
-  if (!check.ok || !check.target) return { ok: false, reason: check.reason ?? "无法进化" };
+  if (!check.ok || !check.target) return { ok: false, reason: check.reason ?? "evolve_unknown" };
   const s = cloneState(state);
   const cur = ERA_MAP[s.currentEra];
-  if (!payCost(s, cur.evolveCost)) return { ok: false, reason: "扣除资源失败" };
+  if (!payCost(s, cur.evolveCost)) return { ok: false, reason: "evolve_pay_failed" };
   s.evolutionRitual = {
     startedAt: nowMs,
     endsAt: nowMs + scaledDurationMs(cur.evolveTimeMs),
