@@ -70,6 +70,41 @@ const RESOURCE_IDS = [
   "coal",
 ] as const;
 
+const RelicQuality = z.enum(["common", "rare", "epic", "legendary"]);
+
+const Civ6Schema = z.object({
+  rngSeed: z.number().int().nonnegative().max(0xffff_ffff),
+  seenEurekaIds: z.array(z.string().max(16)).max(48),
+  activeBuffs: z
+    .array(
+      z.object({
+        id: z.string().max(20),
+        untilMs: z.number(),
+        kind: z.literal("temp_prod_mult"),
+        resource: ResourceId,
+        mult: z.number().finite().min(1).max(2),
+      }),
+    )
+    .max(24),
+  greatPeople: z.record(z.string().max(12), z.object({ level: z.number().int().min(0).max(20) })),
+  relics: z
+    .array(
+      z.object({
+        defId: z.string().max(12),
+        quality: RelicQuality,
+      }),
+    )
+    .max(64),
+  codexUnlocked: z.object({
+    eureka: z.array(z.string().max(16)).max(40),
+    great: z.array(z.string().max(16)).max(40),
+    relic: z.array(z.string().max(16)).max(64),
+  }),
+  counters: z.record(z.string().max(32), z.number().finite().nonnegative().max(1e12)),
+  staticProdAdd: z.record(z.string().max(12), z.number().finite().min(0).max(0.5)),
+  staticStorageAdd: z.record(z.string().max(12), z.number().finite().min(0).max(500)),
+});
+
 export const SaveGameSchema = z.object({
   saveVersion: z.number().int().min(1).max(10_000),
   lastSyncedAt: z.number().int().nonnegative(),
@@ -107,6 +142,7 @@ export const SaveGameSchema = z.object({
       targetEra: EraId,
     })
     .optional(),
+  civ6: Civ6Schema.optional(),
 })
   .refine((d) => d.activeActions.length <= maxActionSlotsForSaveEra(d.currentEra), {
     message: "activeActions 超过当前时代队列上限",

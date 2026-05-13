@@ -11,6 +11,34 @@ export type BuildingId =
 export type TechId = "fire" | "tools" | "agriculture";
 export type QuestId = "q_gather_food" | "q_build_hut" | "q_research_fire" | "q_upgrade_hut2" | "q_evolve_tribal";
 export type ActionKind = "research" | "building_upgrade";
+export type RelicQuality = "common" | "rare" | "epic" | "legendary";
+export interface Civ6ActiveBuff {
+    id: string;
+    untilMs: number;
+    kind: "temp_prod_mult";
+    resource: ResourceId;
+    mult: number;
+}
+export interface Civ6State {
+    rngSeed: number;
+    seenEurekaIds: string[];
+    activeBuffs: Civ6ActiveBuff[];
+    greatPeople: Partial<Record<string, {
+        level: number;
+    }>>;
+    relics: Array<{
+        defId: string;
+        quality: RelicQuality;
+    }>;
+    codexUnlocked: {
+        eureka: string[];
+        great: string[];
+        relic: string[];
+    };
+    counters: Record<string, number>;
+    staticProdAdd: Partial<Record<ResourceId, number>>;
+    staticStorageAdd: Partial<Record<ResourceId, number>>;
+}
 export type ActiveAction = {
     id: string;
     kind: "research";
@@ -135,6 +163,7 @@ export interface GameState {
     };
     /** 自动加入升级队列的建筑 id */
     autoUpgradeBuildingIds: BuildingId[];
+    civ6?: Civ6State;
 }
 export interface OfflineResult {
     state: GameState;

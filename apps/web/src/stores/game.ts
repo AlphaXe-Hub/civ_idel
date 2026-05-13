@@ -19,8 +19,11 @@ import {
   getTimeScale,
   getQueueTimeScale,
   ensureGameStateDefaults,
+  cloneState,
+  drainCiv6Toasts,
+  tryUpgradeGreatPerson,
 } from "@civ-idle/game-core";
-import type { GameState, BuildingId, TechId } from "@civ-idle/game-core";
+import type { GameState, BuildingId, TechId, Civ6Toast } from "@civ-idle/game-core";
 import { defineStore } from "pinia";
 import { ref, shallowRef } from "vue";
 import { apiFetch } from "../api/client";
@@ -33,6 +36,7 @@ export const useGameStore = defineStore("game", () => {
   const loading = ref(false);
   const syncError = ref<string | null>(null);
   const offlineMessage = ref<string | null>(null);
+  const civ6Toasts = ref<Civ6Toast[]>([]);
   /** 当前被动时间倍率（来自 /game-speed.json 的 timeScale） */
   const timeScale = ref(getTimeScale());
   /** 队列动作耗时倍率（queueTimeScale，缺省与 timeScale 相同） */
@@ -90,6 +94,7 @@ export const useGameStore = defineStore("game", () => {
         );
         ensureGameStateDefaults(s);
         state.value = s;
+        for (const toast of drainCiv6Toasts()) civ6Toasts.value.push(toast);
         const minutes = Math.floor(appliedMs / 60000);
         if (appliedMs > 5000 && completedSummary.length) {
           offlineMessage.value = i18n.global.t("offline.withBody", {
@@ -122,6 +127,7 @@ export const useGameStore = defineStore("game", () => {
       const next = tickOnline(s, gameNow, lastTickGameMs.value);
       state.value = next;
       lastTickGameMs.value = gameNow;
+      for (const toast of drainCiv6Toasts()) civ6Toasts.value.push(toast);
     };
     tickTimer = setInterval(tick, tickIntervalMs());
     saveTimer = setInterval(() => void pushSave(), 30_000);
@@ -167,6 +173,22 @@ export const useGameStore = defineStore("game", () => {
     const r = startEvolution(s, nowMs());
     if (r.ok) patch(r.state);
     else alert(translateErrorReason(r.reason));
+    for (const toast of drainCiv6Toasts()) civ6Toasts.value.push(toast);
+  }
+
+  function upgradeGreatPerson(id: string) {
+    const s = state.value;
+    if (!s) return;
+    const copy = cloneState(s);
+    const r = tryUpgradeGreatPerson(copy, id);
+    if (r.ok) {
+      refreshQuests(copy);
+      state.value = copy;
+    } else alert(translateErrorReason(r.reason));
+  }
+
+  function dismissCiv6Toast() {
+    civ6Toasts.value.shift();
   }
 
   function toggleAutoUpgradeBuilding(id: BuildingId) {
@@ -205,14 +227,17 @@ export const useGameStore = defineStore("game", () => {
     loading,
     syncError,
     offlineMessage,
+    civ6Toasts,
     bootstrap,
     pushSave,
     research,
     upgradeBuilding,
+    upgradeGreatPerson,
     toggleAutoUpgradeBuilding,
     isAutoUpgradeBuilding,
     evolve,
     dismissOffline,
+    dismissCiv6Toast,
     eraThemeClass,
     stopLoops,
     nowMs,

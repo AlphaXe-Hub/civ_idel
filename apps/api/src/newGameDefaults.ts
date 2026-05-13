@@ -37,5 +37,16 @@ export function createInitialSave(nowMs: number): SaveGame {
     questCounters: {},
     bonusModifiers: [],
     autoUpgradeBuildingIds: [],
+    civ6: {
+      rngSeed: 0x9e3779b9,
+      seenEurekaIds: [],
+      activeBuffs: [],
+      greatPeople: {},
+      relics: [],
+      codexUnlocked: { eureka: [], great: [], relic: [] },
+      counters: {},
+      staticProdAdd: {},
+      staticStorageAdd: {},
+    },
   };
 }

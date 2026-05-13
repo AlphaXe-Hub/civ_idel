@@ -124,6 +124,40 @@ export interface QuestDef {
   requires?: QuestId[];
 }
 
+export type RelicQuality = "common" | "rare" | "epic" | "legendary";
+
+/** 尤里卡触发的临时产出倍率（与 bonusModifiers 分离，由 aggregate 汇总并 cap） */
+export interface Civ6ActiveBuff {
+  id: string;
+  untilMs: number;
+  kind: "temp_prod_mult";
+  resource: ResourceId;
+  /** 额外乘在 productionMultiplier 上（例如 1.04） */
+  mult: number;
+}
+
+/**
+ * 文明6 风格扩展存档（尤里卡 / 伟人 / 遗物 + 图鉴）
+ * 弹窗队列不入库，由 tick 写入模块级 buffer，前端 drain。
+ */
+export interface Civ6State {
+  rngSeed: number;
+  /** 已消费的一次性尤里卡（永久类防重复） */
+  seenEurekaIds: string[];
+  activeBuffs: Civ6ActiveBuff[];
+  /** 伟人 id -> 等级 */
+  greatPeople: Partial<Record<string, { level: number }>>;
+  relics: Array<{ defId: string; quality: RelicQuality }>;
+  /** 图鉴已解锁 id（尤里卡 / 伟人 / 遗物） */
+  codexUnlocked: { eureka: string[]; great: string[]; relic: string[] };
+  /** 行为计数（建筑完成次数、进化次数等） */
+  counters: Record<string, number>;
+  /** 尤里卡等给予的永久小额产出加算（以 (1+sum) 乘入，cap 在 aggregate） */
+  staticProdAdd: Partial<Record<ResourceId, number>>;
+  /** 遗物/伟人等给予的仓库加算（直接加到 baseStorageCap 之后） */
+  staticStorageAdd: Partial<Record<ResourceId, number>>;
+}
+
 export interface GameState {
   saveVersion: number;
   /** 上次与服务器对齐的时间戳（毫秒） */
@@ -143,6 +177,8 @@ export interface GameState {
   evolutionRitual?: { startedAt: number; endsAt: number; targetEra: EraId };
   /** 勾选自动加入建筑升级队列的建筑 id（有空位且资源够时由 tick 自动开升级） */
   autoUpgradeBuildingIds: BuildingId[];
+  /** 尤里卡 / 伟人 / 遗物（可选，旧档无） */
+  civ6?: Civ6State;
 }
 
 export interface OfflineResult {

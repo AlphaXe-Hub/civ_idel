@@ -3,8 +3,9 @@ import { BUILDINGS } from "./config/buildings.js";
 import { eraIndex } from "./config/eras.js";
 import { TECHS } from "./config/techs.js";
 import type { GameState, ResourceId } from "./types.js";
+import { civ6ProductionAddFraction, civ6StorageFlatAdd } from "./civ6/apply.js";
 
-/** 科技 + 任务奖励修饰符对某资源产出的总乘区 */
+/** 科技 + 任务奖励修饰符 + civ6 对某资源产出的总乘区 */
 export function productionMultiplier(state: GameState, resource: ResourceId) {
   let m = dOne();
   for (const t of TECHS) {
@@ -15,6 +16,8 @@ export function productionMultiplier(state: GameState, resource: ResourceId) {
   for (const b of state.bonusModifiers) {
     if (b.resource === resource) m = m.mul(b.multiplier);
   }
+  const civ6Add = civ6ProductionAddFraction(state, resource);
+  if (civ6Add > 0) m = m.mul(dOne().add(D(civ6Add)));
   return m;
 }
 
@@ -37,5 +40,6 @@ export function baseStorageCap(resource: ResourceId, state: GameState) {
   if (resource === "knowledge" && state.currentEra !== "primitive") {
     cap = cap.add(D(50));
   }
+  cap = cap.add(civ6StorageFlatAdd(state, resource));
   return cap;
 }

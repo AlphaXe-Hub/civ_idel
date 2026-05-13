@@ -19,19 +19,22 @@ import { useRouter } from "vue-router";
 import { SUPPORTED_LOCALES, setAppLocale, type AppLocale } from "../i18n";
 import { useAuthStore } from "../stores/auth";
 import { useGameStore } from "../stores/game";
+import Civ6CodexPanel from "../components/Civ6CodexPanel.vue";
+import EurekaToastHost from "../components/EurekaToastHost.vue";
 
 const { t, te, locale } = useI18n();
 
 const game = useGameStore();
 const auth = useAuthStore();
 const router = useRouter();
-const tab = ref<"buildings" | "tech" | "quests" | "era">("buildings");
+const tab = ref<"buildings" | "tech" | "quests" | "era" | "civ6">("buildings");
 
 const tabs = computed(() => [
   { id: "buildings" as const, label: t("game.tabBuildings") },
   { id: "tech" as const, label: t("game.tabTech") },
   { id: "quests" as const, label: t("game.tabQuests") },
   { id: "era" as const, label: t("game.tabEra") },
+  { id: "civ6" as const, label: t("game.tabCiv6") },
 ]);
 
 const s = computed(() => game.state);
@@ -719,6 +722,11 @@ function resAmount(id: string) {
             </template>
           </div>
         </section>
+
+        <section v-show="tab === 'civ6'" class="max-w-5xl space-y-3">
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-400">{{ t("game.tabCiv6") }}</h3>
+          <Civ6CodexPanel />
+        </section>
       </main>
 
       <aside class="hidden w-56 shrink-0 border-l border-white/10 bg-black/30 p-3 backdrop-blur lg:block">
@@ -789,5 +797,7 @@ function resAmount(id: string) {
         </button>
       </div>
     </div>
+
+    <EurekaToastHost />
   </div>
 </template>

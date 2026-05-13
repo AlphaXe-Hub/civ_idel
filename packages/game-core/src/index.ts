@@ -10,3 +10,4 @@ export * from "./config/techs.js";
 export * from "./config/eras.js";
 export * from "./config/quests.js";
 export * from "./config/game-speed.js";
+export * from "./civ6/index.js";

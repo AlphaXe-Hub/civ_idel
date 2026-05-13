@@ -13,6 +13,9 @@ export default {
     evolve_pay_failed: "資源の消費に失敗しました",
     load_failed: "読み込みに失敗しました",
     sync_failed: "同期に失敗しました",
+    civ6_locked: "図鑑が未初期化です",
+    civ6_invalid: "無効な偉人です",
+    civ6_max_level: "偉人は最大レベルです",
   },
   common: {
     retry: "再試行",
@@ -95,6 +98,16 @@ export default {
     unlockTech: "技術解放：{name}",
     autoUpgradeTitleOn: "ON：空き枠かつ資源が足りればこの建物の自動アップグレードをキューに入れる",
     autoUpgradeTitleOff: "自動アップグレードをオフ",
+    tabCiv6: "📚 図鑑",
+    tabCiv6Eureka: "ユリイカ",
+    tabCiv6Great: "偉人",
+    tabCiv6Relic: "遺物",
+    civ6EurekaTitle: "ユリイカ！",
+    civ6EurekaOk: "了解",
+    civ6GreatUpgrade: "偉人を強化",
+    civ6RelicOwnedHint: "遺物はユリイカなどでランダム入手。解放済みは名称と所持数を表示。",
+    civ6RelicOwnedCount: "所持 {n}",
+    civ6RelicInventory: "所持一覧",
   },
   offline: {
     withBody: "オフライン約 {minutes} 分\n{body}",
@@ -153,6 +166,14 @@ export default {
       classical: { name: "古典時代" },
       industrial: { name: "工業時代" },
       modern: { name: "現代" },
+    },
+  },
+  civ6: {
+    quality: {
+      common: "コモン",
+      rare: "レア",
+      epic: "エピック",
+      legendary: "レジェンダリー",
     },
   },
 };

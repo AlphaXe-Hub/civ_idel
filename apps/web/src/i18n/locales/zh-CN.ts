@@ -13,6 +13,9 @@ export default {
     evolve_pay_failed: "扣除资源失败",
     load_failed: "加载失败",
     sync_failed: "同步失败",
+    civ6_locked: "典藏系统未初始化",
+    civ6_invalid: "无效的伟人",
+    civ6_max_level: "伟人已达最高等级",
   },
   common: {
     retry: "重试",
@@ -95,6 +98,16 @@ export default {
     unlockTech: "科技可用：{name}",
     autoUpgradeTitleOn: "开启：有空位且资源足够时自动加入该建筑的升级队列",
     autoUpgradeTitleOff: "关闭自动升级队列",
+    tabCiv6: "📚 典藏",
+    tabCiv6Eureka: "尤里卡",
+    tabCiv6Great: "伟人",
+    tabCiv6Relic: "遗物",
+    civ6EurekaTitle: "尤里卡时刻！",
+    civ6EurekaOk: "太棒了",
+    civ6GreatUpgrade: "升级伟人",
+    civ6RelicOwnedHint: "遗物通过尤里卡等随机获得；已解锁条目显示名称与持有数。",
+    civ6RelicOwnedCount: "持有 {n} 件",
+    civ6RelicInventory: "背包",
   },
   offline: {
     withBody: "离线约 {minutes} 分钟\n{body}",
@@ -154,6 +167,14 @@ export default {
       classical: { name: "古典时代" },
       industrial: { name: "工业时代" },
       modern: { name: "现代" },
+    },
+  },
+  civ6: {
+    quality: {
+      common: "普通",
+      rare: "稀有",
+      epic: "史诗",
+      legendary: "传说",
     },
   },
 };

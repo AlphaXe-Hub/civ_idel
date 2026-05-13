@@ -7,6 +7,7 @@ import { RESOURCE_MAP } from "./config/resources.js";
 import { scaledPassiveDtMs } from "./config/game-speed.js";
 import { baseStorageCap, productionMultiplier } from "./modifiers.js";
 import { dispatchAutoBuildingUpgrades } from "./actions.js";
+import { civ6DispatchTrigger, civ6ProcessTime } from "./civ6/processTime.js";
 import {
   addResources,
   buildingLevel,
@@ -81,11 +82,13 @@ export function completeActionAt(state: GameState, action: ActiveAction, summary
   if (action.kind === "research") {
     completeResearch(state, action.techId);
     summary.push(`研究完成：${TECH_MAP[action.techId].emoji} ${TECH_MAP[action.techId].name}`);
+    civ6DispatchTrigger(state, "on_research_complete", action.endsAt);
   } else {
     completeUpgrade(state, action.buildingId, action.toLevel);
     const b = BUILDING_MAP[action.buildingId];
     const verb = action.fromLevel <= 0 ? "首建" : "升级";
     summary.push(`${verb}完成：${b.emoji} ${b.name} Lv.${action.toLevel}`);
+    civ6DispatchTrigger(state, "on_building_complete", action.endsAt);
   }
 }
 
@@ -116,8 +119,13 @@ export function advanceTime(state: GameState, t0: number, t1: number, summary: s
     if (er && er.endsAt > t) next = Math.min(next, er.endsAt);
 
     const dt = next - t;
-    if (dt > 0) applyPassiveForMs(state, dt);
+    if (dt > 0) {
+      const c6 = state.civ6;
+      if (c6) c6.activeBuffs = c6.activeBuffs.filter((b) => b.untilMs > t);
+      applyPassiveForMs(state, dt);
+    }
     t = next;
+    civ6ProcessTime(state, t, dt);
 
     const finishedActions = state.activeActions.filter((a) => a.endsAt <= t);
     for (const a of finishedActions) {
@@ -131,6 +139,7 @@ export function advanceTime(state: GameState, t0: number, t1: number, summary: s
       state.evolutionRitual = undefined;
       summary.push(`时代跃进：${ERA_MAP[r2.targetEra].emoji} ${ERA_MAP[r2.targetEra].name}`);
       unlockTechsForEra(state);
+      civ6DispatchTrigger(state, "on_evolve", t);
     }
   }
 }

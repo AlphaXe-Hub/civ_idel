@@ -13,6 +13,9 @@ export default {
     evolve_pay_failed: "Failed to deduct resources",
     load_failed: "Failed to load",
     sync_failed: "Sync failed",
+    civ6_locked: "Codex not initialized",
+    civ6_invalid: "Invalid great person",
+    civ6_max_level: "Great person is at max level",
   },
   common: {
     retry: "Retry",
@@ -95,6 +98,16 @@ export default {
     unlockTech: "Tech available: {name}",
     autoUpgradeTitleOn: "When on, auto-queue this building's upgrade if a slot is free and you can afford it",
     autoUpgradeTitleOff: "Turn off auto-upgrade queue for this building",
+    tabCiv6: "📚 Codex",
+    tabCiv6Eureka: "Eurekas",
+    tabCiv6Great: "Great people",
+    tabCiv6Relic: "Relics",
+    civ6EurekaTitle: "Eureka!",
+    civ6EurekaOk: "Nice",
+    civ6GreatUpgrade: "Upgrade great person",
+    civ6RelicOwnedHint: "Relics drop from Eurekas and other rolls. Unlocked entries show names and counts.",
+    civ6RelicOwnedCount: "Owned: {n}",
+    civ6RelicInventory: "Inventory",
   },
   offline: {
     withBody: "Offline ~{minutes} min\n{body}",
@@ -153,6 +166,14 @@ export default {
       classical: { name: "Classical" },
       industrial: { name: "Industrial" },
       modern: { name: "Modern" },
+    },
+  },
+  civ6: {
+    quality: {
+      common: "Common",
+      rare: "Rare",
+      epic: "Epic",
+      legendary: "Legendary",
     },
   },
 };

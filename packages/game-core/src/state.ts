@@ -2,6 +2,7 @@ import { D, dZero } from "./bn.js";
 import { BUILDINGS } from "./config/buildings.js";
 import { eraIndex } from "./config/eras.js";
 import type { BuildingId, GameState, ResourceId, TechId } from "./types.js";
+import { createEmptyCiv6State } from "./civ6/init.js";
 
 const SAVE_VERSION = 1;
 
@@ -20,6 +21,25 @@ export function ensureGameStateDefaults(state: GameState): void {
   if (!Array.isArray(state.autoUpgradeBuildingIds)) state.autoUpgradeBuildingIds = [];
   for (const b of BUILDINGS) {
     if (state.buildings[b.id] == null) state.buildings[b.id] = { level: 0 };
+  }
+  if (!state.civ6) {
+    state.civ6 = createEmptyCiv6State((state.lastSyncedAt ^ state.saveVersion) >>> 0);
+  } else {
+    const c = state.civ6;
+    if (!Array.isArray(c.seenEurekaIds)) c.seenEurekaIds = [];
+    if (!Array.isArray(c.activeBuffs)) c.activeBuffs = [];
+    if (!c.greatPeople || typeof c.greatPeople !== "object") c.greatPeople = {};
+    if (!Array.isArray(c.relics)) c.relics = [];
+    if (!c.codexUnlocked) c.codexUnlocked = { eureka: [], great: [], relic: [] };
+    else {
+      if (!Array.isArray(c.codexUnlocked.eureka)) c.codexUnlocked.eureka = [];
+      if (!Array.isArray(c.codexUnlocked.great)) c.codexUnlocked.great = [];
+      if (!Array.isArray(c.codexUnlocked.relic)) c.codexUnlocked.relic = [];
+    }
+    if (!c.counters || typeof c.counters !== "object") c.counters = {};
+    if (!c.staticProdAdd || typeof c.staticProdAdd !== "object") c.staticProdAdd = {};
+    if (!c.staticStorageAdd || typeof c.staticStorageAdd !== "object") c.staticStorageAdd = {};
+    if (typeof c.rngSeed !== "number" || !Number.isFinite(c.rngSeed)) c.rngSeed = 0x9e3779b9;
   }
 }
 
@@ -59,6 +79,7 @@ export function createInitialState(nowMs: number): GameState {
     questCounters: {},
     bonusModifiers: [],
     autoUpgradeBuildingIds: [],
+    civ6: createEmptyCiv6State((nowMs ^ SAVE_VERSION) >>> 0),
   };
 }
 
