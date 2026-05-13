@@ -59,7 +59,7 @@ export function startBuildingUpgrade(
   const b = BUILDING_MAP[buildingId];
   if (eraIndex(s.currentEra) < eraIndex(b.minEra)) return { ok: false, reason: "era_locked" };
   const from = buildingLevel(s, buildingId);
-  if (from <= 0) return { ok: false, reason: "building_locked" };
+  if (from < 0) return { ok: false, reason: "building_locked" };
   const cost = b.upgradeCost(from);
   if (!canPay(s, cost)) return { ok: false, reason: "insufficient_resources" };
   payCost(s, cost);
@@ -74,6 +74,29 @@ export function startBuildingUpgrade(
   };
   s.activeActions.push(action);
   return { ok: true, state: s };
+}
+
+/** 时间推进后调用：按勾选自动将建筑升级加入队列（有槽位且资源足够时） */
+export function dispatchAutoBuildingUpgrades(state: GameState, nowMs: number): GameState {
+  const autos = state.autoUpgradeBuildingIds ?? [];
+  if (autos.length === 0) return state;
+
+  let s = cloneState(state);
+  let guard = 0;
+  while (guard++ < 40 && canStartAction(s)) {
+    let progressed = false;
+    for (const bid of autos) {
+      if (s.activeActions.some((a) => a.kind === "building_upgrade" && a.buildingId === bid)) continue;
+      const r = startBuildingUpgrade(s, bid, nowMs);
+      if (r.ok) {
+        s = r.state;
+        progressed = true;
+        break;
+      }
+    }
+    if (!progressed) break;
+  }
+  return s;
 }
 
 function meetsEvolveRequirements(state: GameState, targetEra: NonNullable<ReturnType<typeof nextEra>>): boolean {

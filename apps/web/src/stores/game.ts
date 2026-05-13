@@ -18,7 +18,7 @@ import {
   configureGameSpeed,
   getTimeScale,
   getQueueTimeScale,
-  ensureAllResourceKeys,
+  ensureGameStateDefaults,
 } from "@civ-idle/game-core";
 import type { GameState, BuildingId, TechId } from "@civ-idle/game-core";
 import { defineStore } from "pinia";
@@ -88,7 +88,7 @@ export const useGameStore = defineStore("game", () => {
           res.save.lastSyncedAt,
           t,
         );
-        ensureAllResourceKeys(s);
+        ensureGameStateDefaults(s);
         state.value = s;
         const minutes = Math.floor(appliedMs / 60000);
         if (appliedMs > 5000 && completedSummary.length) {
@@ -169,6 +169,20 @@ export const useGameStore = defineStore("game", () => {
     else alert(translateErrorReason(r.reason));
   }
 
+  function toggleAutoUpgradeBuilding(id: BuildingId) {
+    const st = state.value;
+    if (!st) return;
+    const cur = [...(st.autoUpgradeBuildingIds ?? [])];
+    const idx = cur.indexOf(id);
+    if (idx >= 0) cur.splice(idx, 1);
+    else cur.push(id);
+    state.value = { ...st, autoUpgradeBuildingIds: cur };
+  }
+
+  function isAutoUpgradeBuilding(id: BuildingId) {
+    return state.value?.autoUpgradeBuildingIds?.includes(id) ?? false;
+  }
+
   function dismissOffline() {
     offlineMessage.value = null;
   }
@@ -195,6 +209,8 @@ export const useGameStore = defineStore("game", () => {
     pushSave,
     research,
     upgradeBuilding,
+    toggleAutoUpgradeBuilding,
+    isAutoUpgradeBuilding,
     evolve,
     dismissOffline,
     eraThemeClass,

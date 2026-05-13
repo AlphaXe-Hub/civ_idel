@@ -18,24 +18,24 @@ export function productionMultiplier(state: GameState, resource: ResourceId) {
   return m;
 }
 
+/**
+ * 仓库基础容量：时代略抬底数；各建筑对该资源的「每级加成」叠乘温和复利（1.014^lv，lv 封顶防溢出）。
+ */
 export function baseStorageCap(resource: ResourceId, state: GameState) {
-  let cap = D(120);
+  const ei = eraIndex(state.currentEra);
+  let cap = D(120).mul(dOne().add(D(0.04 * ei)));
+
   for (const b of BUILDINGS) {
     const lv = state.buildings[b.id]?.level ?? 0;
     const bonus = b.storageBonusPerLevel[resource];
-    if (bonus) cap = cap.add(D(bonus * lv));
+    if (!bonus || lv <= 0) continue;
+    const t = Math.min(lv, 400);
+    const mult = D(1.014).pow(t);
+    cap = cap.add(D(bonus * lv).mul(mult));
   }
+
   if (resource === "knowledge" && state.currentEra !== "primitive") {
     cap = cap.add(D(50));
-  }
-  if (resource === "clay" && eraIndex(state.currentEra) >= eraIndex("agricultural")) {
-    cap = cap.add(D(100));
-  }
-  if (resource === "metal" && eraIndex(state.currentEra) >= eraIndex("classical")) {
-    cap = cap.add(D(120));
-  }
-  if (resource === "coal" && eraIndex(state.currentEra) >= eraIndex("industrial")) {
-    cap = cap.add(D(150));
   }
   return cap;
 }

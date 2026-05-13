@@ -6,6 +6,7 @@ import { TECH_MAP, TECHS } from "./config/techs.js";
 import { RESOURCE_MAP } from "./config/resources.js";
 import { scaledPassiveDtMs } from "./config/game-speed.js";
 import { baseStorageCap, productionMultiplier } from "./modifiers.js";
+import { dispatchAutoBuildingUpgrades } from "./actions.js";
 import {
   addResources,
   buildingLevel,
@@ -37,16 +38,6 @@ function passiveRatesPerSecond(state: GameState): Record<ResourceId, import("bre
   if (state.currentEra !== "primitive") {
     const k = D(0.02).mul(eraIndex(state.currentEra));
     rates.knowledge = rates.knowledge!.add(k);
-  }
-
-  if (eraIndex(state.currentEra) >= eraIndex("agricultural")) {
-    rates.clay = rates.clay!.add(D(0.02));
-  }
-  if (eraIndex(state.currentEra) >= eraIndex("classical")) {
-    rates.metal = rates.metal!.add(D(0.012));
-  }
-  if (eraIndex(state.currentEra) >= eraIndex("industrial")) {
-    rates.coal = rates.coal!.add(D(0.01));
   }
 
   return rates as Record<ResourceId, import("break_infinity.js").default>;
@@ -93,7 +84,8 @@ export function completeActionAt(state: GameState, action: ActiveAction, summary
   } else {
     completeUpgrade(state, action.buildingId, action.toLevel);
     const b = BUILDING_MAP[action.buildingId];
-    summary.push(`建造完成：${b.emoji} ${b.name} Lv.${action.toLevel}`);
+    const verb = action.fromLevel <= 0 ? "首建" : "升级";
+    summary.push(`${verb}完成：${b.emoji} ${b.name} Lv.${action.toLevel}`);
   }
 }
 
@@ -156,9 +148,10 @@ export function applyOffline(
   if (delta > OFFLINE_CAP_MS) delta = OFFLINE_CAP_MS;
   const summary: string[] = [];
   advanceTime(s, fromMs, fromMs + delta, summary);
-  s.lastSyncedAt = toMs;
-  refreshQuests(s);
-  return { state: s, appliedMs: delta, completedSummary: summary };
+  const afterAuto = dispatchAutoBuildingUpgrades(s, fromMs + delta);
+  afterAuto.lastSyncedAt = toMs;
+  refreshQuests(afterAuto);
+  return { state: afterAuto, appliedMs: delta, completedSummary: summary };
 }
 
 export function tickOnline(state: GameState, nowMs: number, lastTickMs: number) {
@@ -166,8 +159,9 @@ export function tickOnline(state: GameState, nowMs: number, lastTickMs: number) 
   if (nowMs <= lastTickMs) return s;
   const summary: string[] = [];
   advanceTime(s, lastTickMs, nowMs, summary);
-  refreshQuests(s);
-  return s;
+  const afterAuto = dispatchAutoBuildingUpgrades(s, nowMs);
+  refreshQuests(afterAuto);
+  return afterAuto;
 }
 
 function objectiveMet(state: GameState, q: (typeof QUESTS)[number]): boolean {

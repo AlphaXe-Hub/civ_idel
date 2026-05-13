@@ -1,6 +1,13 @@
 export type ResourceId = "food" | "wood" | "stone" | "knowledge" | "clay" | "metal" | "coal";
 export type EraId = "primitive" | "tribal" | "agricultural" | "classical" | "industrial" | "modern";
-export type BuildingId = "hut" | "lumberCamp" | "stonePit";
+export type BuildingId =
+  | "hut"
+  | "lumberCamp"
+  | "stonePit"
+  | "library"
+  | "clayWorks"
+  | "foundry"
+  | "coalShaft";
 export type TechId = "fire" | "tools" | "agriculture";
 export type QuestId = "q_gather_food" | "q_build_hut" | "q_research_fire" | "q_upgrade_hut2" | "q_evolve_tribal";
 export type ActionKind = "research" | "building_upgrade";
@@ -109,7 +116,7 @@ export interface GameState {
         level: number;
     }>;
     techStatus: Record<TechId, "locked" | "available" | "researching" | "completed">;
-    /** 进行中的定时动作，最多 2 个 */
+    /** 进行中的定时动作（槽位随时代增加） */
     activeActions: ActiveAction[];
     completedQuests: QuestId[];
     /** 任务进度缓存（如资源历史峰值等简化：仅存当前计数） */
@@ -126,6 +133,8 @@ export interface GameState {
         endsAt: number;
         targetEra: EraId;
     };
+    /** 自动加入升级队列的建筑 id */
+    autoUpgradeBuildingIds: BuildingId[];
 }
 export interface OfflineResult {
     state: GameState;

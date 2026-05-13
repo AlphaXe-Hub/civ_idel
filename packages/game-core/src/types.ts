@@ -17,7 +17,14 @@ export type EraId =
   | "industrial"
   | "modern";
 
-export type BuildingId = "hut" | "lumberCamp" | "stonePit";
+export type BuildingId =
+  | "hut"
+  | "lumberCamp"
+  | "stonePit"
+  | "library"
+  | "clayWorks"
+  | "foundry"
+  | "coalShaft";
 
 export type TechId = "fire" | "tools" | "agriculture";
 
@@ -125,7 +132,7 @@ export interface GameState {
   resources: Record<ResourceId, string>;
   buildings: Record<BuildingId, { level: number }>;
   techStatus: Record<TechId, "locked" | "available" | "researching" | "completed">;
-  /** 进行中的定时动作，最多 2 个 */
+  /** 进行中的定时动作（槽位数随时代增加） */
   activeActions: ActiveAction[];
   completedQuests: QuestId[];
   /** 任务进度缓存（如资源历史峰值等简化：仅存当前计数） */
@@ -134,6 +141,8 @@ export interface GameState {
   bonusModifiers: Array<{ id: string; resource: ResourceId; multiplier: number }>;
   /** 进化仪式进行中 */
   evolutionRitual?: { startedAt: number; endsAt: number; targetEra: EraId };
+  /** 勾选自动加入建筑升级队列的建筑 id（有空位且资源够时由 tick 自动开升级） */
+  autoUpgradeBuildingIds: BuildingId[];
 }
 
 export interface OfflineResult {

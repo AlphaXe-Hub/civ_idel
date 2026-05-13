@@ -51,7 +51,7 @@ describe("tick / offline", () => {
     const dur = s.activeActions[0]!.endsAt - t0 + 1000;
     const { state, completedSummary } = applyOffline(s, t0, t0 + dur);
     expect(state.buildings.hut.level).toBeGreaterThanOrEqual(2);
-    expect(completedSummary.some((x) => x.includes("建造完成"))).toBe(true);
+    expect(completedSummary.some((x) => x.includes("升级完成"))).toBe(true);
   });
 });
 

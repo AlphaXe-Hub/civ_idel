@@ -22,6 +22,10 @@ export function createInitialSave(nowMs: number): SaveGame {
       hut: { level: 1 },
       lumberCamp: { level: 1 },
       stonePit: { level: 1 },
+      library: { level: 0 },
+      clayWorks: { level: 0 },
+      foundry: { level: 0 },
+      coalShaft: { level: 0 },
     },
     techStatus: {
       fire: "available",
@@ -32,5 +36,6 @@ export function createInitialSave(nowMs: number): SaveGame {
     completedQuests: [],
     questCounters: {},
     bonusModifiers: [],
+    autoUpgradeBuildingIds: [],
   };
 }

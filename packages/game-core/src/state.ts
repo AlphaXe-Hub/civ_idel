@@ -1,5 +1,6 @@
 import { D, dZero } from "./bn.js";
 import { BUILDINGS } from "./config/buildings.js";
+import { eraIndex } from "./config/eras.js";
 import type { BuildingId, GameState, ResourceId, TechId } from "./types.js";
 
 const SAVE_VERSION = 1;
@@ -14,10 +15,22 @@ export function ensureAllResourceKeys(state: GameState): void {
   }
 }
 
+export function ensureGameStateDefaults(state: GameState): void {
+  ensureAllResourceKeys(state);
+  if (!Array.isArray(state.autoUpgradeBuildingIds)) state.autoUpgradeBuildingIds = [];
+  for (const b of BUILDINGS) {
+    if (state.buildings[b.id] == null) state.buildings[b.id] = { level: 0 };
+  }
+}
+
 /** 新用户初始存档（与 `apps/api/src/newGameDefaults.ts` 的 `createInitialSave` 需保持同步） */
 export function createInitialState(nowMs: number): GameState {
+  const startEra = "primitive" as const;
   const buildings = Object.fromEntries(
-    BUILDINGS.map((b) => [b.id, { level: 1 }]),
+    BUILDINGS.map((b) => [
+      b.id,
+      { level: eraIndex(startEra) >= eraIndex(b.minEra) ? 1 : 0 },
+    ]),
   ) as GameState["buildings"];
 
   const techStatus = {
@@ -45,6 +58,7 @@ export function createInitialState(nowMs: number): GameState {
     completedQuests: [],
     questCounters: {},
     bonusModifiers: [],
+    autoUpgradeBuildingIds: [],
   };
 }
 

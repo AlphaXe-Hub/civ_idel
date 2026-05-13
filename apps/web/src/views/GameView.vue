@@ -2,15 +2,17 @@
 import {
   buildingLevel,
   canPay,
+  D,
   eraIndex,
   getResource,
   maxActionSlots,
   nextEra,
+  passiveRatesPerSecond,
   scaledDurationMs,
   type BuildingDef,
   type TechDef,
 } from "@civ-idle/game-core";
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { SUPPORTED_LOCALES, setAppLocale, type AppLocale } from "../i18n";
@@ -40,6 +42,66 @@ const visibleResourceIds = computed(() => {
     (rid) => eraIndex(st.currentEra) >= eraIndex(game.RESOURCE_MAP[rid].minEra),
   );
 });
+
+const unlockWatchKey = computed(() => {
+  const st = s.value;
+  if (!st) return "";
+  const techKey = game.TECHS.map((x) => `${x.id}:${st.techStatus[x.id]}`).join("|");
+  return `${st.currentEra}|${visibleResourceIds.value.join(",")}|${techKey}`;
+});
+
+const unlockOpen = ref(false);
+const unlockLines = ref<string[]>([]);
+
+watch(unlockWatchKey, (key, prev) => {
+  if (!s.value || !key) return;
+  if (prev === undefined) return;
+  if (prev === key) return;
+  const lines = diffUnlockMessages(prev, key);
+  if (lines.length) {
+    unlockLines.value = lines;
+    unlockOpen.value = true;
+  }
+});
+
+function diffUnlockMessages(prevKey: string, nextKey: string): string[] {
+  const [pe, pr, pt] = prevKey.split("|");
+  const [ne, nr, nt] = nextKey.split("|");
+  const lines: string[] = [];
+  if (pe !== ne) {
+    lines.push(t("game.unlockEra", { name: trEraName(ne as keyof typeof game.ERA_MAP) }));
+  }
+  const prevRes = new Set((pr ?? "").split(",").filter(Boolean));
+  for (const id of (nr ?? "").split(",").filter(Boolean)) {
+    if (!prevRes.has(id)) {
+      lines.push(t("game.unlockResource", { name: trResource(id as keyof typeof game.RESOURCE_MAP) }));
+    }
+  }
+  const prevTech = new Map<string, string>();
+  for (const seg of (pt ?? "").split("|").filter(Boolean)) {
+    const colon = seg.indexOf(":");
+    if (colon > 0) prevTech.set(seg.slice(0, colon), seg.slice(colon + 1));
+  }
+  for (const seg of (nt ?? "").split("|").filter(Boolean)) {
+    const colon = seg.indexOf(":");
+    if (colon <= 0) continue;
+    const id = seg.slice(0, colon);
+    const status = seg.slice(colon + 1);
+    const ps = prevTech.get(id);
+    if (ps === "locked" && status !== "locked") {
+      lines.push(t("game.unlockTech", { name: trTechId(id) }));
+    }
+  }
+  return lines;
+}
+
+function passiveRateFor(rid: keyof typeof game.RESOURCE_MAP) {
+  const st = s.value;
+  if (!st) return "0";
+  const r = passiveRatesPerSecond(st)[rid];
+  const scaled = r.mul(D(game.timeScale));
+  return fmt(scaled.toString());
+}
 
 const evolveCheck = computed(() => (s.value ? game.canEvolve(s.value) : { ok: false as const, reason: undefined as string | undefined }));
 
@@ -84,6 +146,12 @@ function trQuestDescription(q: (typeof game.QUESTS)[number]) {
 function trEraName(eraId: keyof typeof game.ERA_MAP) {
   const key = `content.eras.${eraId}.name`;
   return te(key) ? t(key) : game.ERA_MAP[eraId].name;
+}
+
+const libraryDef = game.BUILDINGS.find((b) => b.id === "library");
+
+function scrollToBuilding(id: string) {
+  document.getElementById(`building-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 const nextEraId = computed(() => (s.value ? nextEra(s.value.currentEra) : null));
@@ -340,58 +408,129 @@ function resAmount(id: string) {
       </nav>
 
       <main class="flex-1 overflow-y-auto p-4">
-        <section v-show="tab === 'buildings'" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <article
-            v-for="b in game.BUILDINGS"
-            :key="b.id"
-            v-show="eraIndex(s.currentEra) >= eraIndex(b.minEra)"
-            class="rounded-2xl border border-white/10 bg-black/30 p-4 shadow-lg backdrop-blur"
-          >
-            <div class="mb-2 flex items-center justify-between">
-              <div class="text-3xl" aria-hidden="true">{{ b.emoji }}</div>
-              <div class="text-right text-sm text-slate-400">Lv. {{ s.buildings[b.id]?.level ?? 0 }}</div>
-            </div>
-            <h3 class="text-lg font-semibold">{{ trBuildingName(b) }}</h3>
-            <p class="mt-2 text-xs text-slate-400">
-              <span v-for="(rate, res) in b.production" :key="String(res)" class="mr-2">
-                {{ game.RESOURCE_MAP[res as keyof typeof game.RESOURCE_MAP].emoji }}
-                {{ (rate * (s.buildings[b.id]?.level ?? 0)).toFixed(2) }}{{ t("common.perSecBase") }}
-              </span>
-            </p>
-            <div class="mt-3 rounded-lg border border-white/5 bg-black/35 px-2.5 py-2 text-xs">
-              <div class="mb-1.5 font-medium text-slate-300">
-                {{ t("game.nextUpgradeCost", { sec: nextUpgradeDurationSec(b) }) }}
-              </div>
-              <div
-                v-for="row in upgradeCostRows(b)"
-                :key="row.label"
-                class="flex items-center justify-between gap-2 border-t border-white/5 py-1 first:border-t-0 first:pt-0"
-                :class="row.met ? 'text-slate-300' : 'text-rose-300'"
+        <section v-show="tab === 'buildings'" class="space-y-6">
+          <div>
+            <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+              {{ t("game.resourceWarehouseTitle") }}
+            </h3>
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <article
+                v-for="rid in visibleResourceIds"
+                :key="rid"
+                class="rounded-xl border border-white/10 bg-black/30 p-3 shadow-md backdrop-blur"
               >
-                <span>{{ row.emoji }} {{ row.label }}</span>
-                <span class="shrink-0 font-mono tabular-nums">
-                  <span :class="row.met ? 'text-emerald-400/90' : ''">{{ fmt(row.have) }}</span>
-                  <span class="text-slate-500"> / </span>
-                  <span>{{ fmt(row.need) }}</span>
-                </span>
-              </div>
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-2xl" aria-hidden="true">{{ game.RESOURCE_MAP[rid].emoji }}</span>
+                  <span class="text-xs text-slate-500">{{ trResource(rid) }}</span>
+                </div>
+                <div class="mt-2 font-mono text-lg text-slate-100">{{ fmt(resAmount(rid)) }}</div>
+                <div class="text-xs text-slate-500">
+                  {{ t("game.storageCapShort") }} {{ fmt(game.storageCaps(s)[rid].toString()) }}
+                </div>
+                <div
+                  v-if="rid === 'knowledge' && libraryDef && s && eraIndex(s.currentEra) >= eraIndex(libraryDef.minEra)"
+                  class="mt-1.5"
+                >
+                  <button
+                    type="button"
+                    class="w-full rounded-lg border border-amber-500/35 bg-amber-950/30 px-2 py-1.5 text-left text-xs font-medium text-amber-100/95 hover:bg-amber-900/40"
+                    :title="t('game.raiseKnowledgeCapHint')"
+                    @click="scrollToBuilding('library')"
+                  >
+                    📚 {{ t("game.raiseKnowledgeCap") }}
+                  </button>
+                </div>
+                <div class="mt-1 text-xs text-emerald-300/90">
+                  {{ t("game.passiveRateLabel") }} {{ passiveRateFor(rid) }}{{ t("game.perSecUnit") }}
+                </div>
+              </article>
             </div>
-            <button
-              type="button"
-              :disabled="!game.canStartAction(s) || !canAffordUpgrade(b)"
-              class="mt-3 w-full rounded-xl bg-amber-600/90 py-2 text-sm font-medium hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
-              :title="
-                !canAffordUpgrade(b)
-                  ? t('game.resInsufficient')
-                  : !game.canStartAction(s)
-                    ? t('game.queueFullTitle', { max: maxActionSlots(s) })
-                    : t('game.upgradeTimeTitle', { sec: nextUpgradeDurationSec(b) })
-              "
-              @click="game.upgradeBuilding(b.id)"
-            >
-              ⬆️ {{ t("game.upgrade") }}
-            </button>
-          </article>
+          </div>
+          <div>
+            <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+              {{ t("game.buildingsTitle") }}
+            </h3>
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <article
+                v-for="b in game.BUILDINGS"
+                :id="'building-' + b.id"
+                :key="b.id"
+                v-show="eraIndex(s.currentEra) >= eraIndex(b.minEra)"
+                class="rounded-2xl border border-white/10 bg-black/30 p-4 shadow-lg backdrop-blur"
+              >
+                <div class="mb-2 flex items-center justify-between">
+                  <div class="text-3xl" aria-hidden="true">{{ b.emoji }}</div>
+                  <div class="text-right text-sm text-slate-400">Lv. {{ s.buildings[b.id]?.level ?? 0 }}</div>
+                </div>
+                <h3 class="text-lg font-semibold">{{ trBuildingName(b) }}</h3>
+                <p class="mt-2 text-xs text-slate-400">
+                  <span v-for="(rate, res) in b.production" :key="String(res)" class="mr-2">
+                    {{ game.RESOURCE_MAP[res as keyof typeof game.RESOURCE_MAP].emoji }}
+                    {{ (rate * (s.buildings[b.id]?.level ?? 0)).toFixed(2) }}{{ t("common.perSecBase") }}
+                  </span>
+                </p>
+                <div class="mt-3 rounded-lg border border-white/5 bg-black/35 px-2.5 py-2 text-xs">
+                  <div class="mb-1.5 font-medium text-slate-300">
+                    {{
+                      buildingLevel(s, b.id) === 0
+                        ? t("game.nextBuildCost", { sec: nextUpgradeDurationSec(b) })
+                        : t("game.nextUpgradeCost", { sec: nextUpgradeDurationSec(b) })
+                    }}
+                  </div>
+                  <div
+                    v-for="row in upgradeCostRows(b)"
+                    :key="row.label"
+                    class="flex items-center justify-between gap-2 border-t border-white/5 py-1 first:border-t-0 first:pt-0"
+                    :class="row.met ? 'text-slate-300' : 'text-rose-300'"
+                  >
+                    <span>{{ row.emoji }} {{ row.label }}</span>
+                    <span class="shrink-0 font-mono tabular-nums">
+                      <span :class="row.met ? 'text-emerald-400/90' : ''">{{ fmt(row.have) }}</span>
+                      <span class="text-slate-500"> / </span>
+                      <span>{{ fmt(row.need) }}</span>
+                    </span>
+                  </div>
+                </div>
+                <div class="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    :disabled="!game.canStartAction(s) || !canAffordUpgrade(b)"
+                    class="min-w-0 flex-1 rounded-xl bg-amber-600/90 py-2 text-sm font-medium hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
+                    :title="
+                      !canAffordUpgrade(b)
+                        ? t('game.resInsufficient')
+                        : !game.canStartAction(s)
+                          ? t('game.queueFullTitle', { max: maxActionSlots(s) })
+                          : buildingLevel(s, b.id) === 0
+                            ? t('game.buildTimeTitle', { sec: nextUpgradeDurationSec(b) })
+                            : t('game.upgradeTimeTitle', { sec: nextUpgradeDurationSec(b) })
+                    "
+                    @click="game.upgradeBuilding(b.id)"
+                  >
+                    <template v-if="buildingLevel(s, b.id) === 0">🔨 {{ t("game.build") }}</template>
+                    <template v-else>⬆️ {{ t("game.upgrade") }}</template>
+                  </button>
+                  <button
+                    type="button"
+                    class="shrink-0 rounded-xl px-3 py-2 text-base transition hover:bg-white/15"
+                    :class="
+                      game.isAutoUpgradeBuilding(b.id)
+                        ? 'bg-emerald-900/40 ring-2 ring-emerald-400/50'
+                        : 'bg-white/10'
+                    "
+                    :title="
+                      game.isAutoUpgradeBuilding(b.id)
+                        ? t('game.autoUpgradeTitleOff')
+                        : t('game.autoUpgradeTitleOn')
+                    "
+                    @click="game.toggleAutoUpgradeBuilding(b.id)"
+                  >
+                    🔄
+                  </button>
+                </div>
+              </article>
+            </div>
+          </div>
         </section>
 
         <section v-show="tab === 'tech'" class="max-w-2xl space-y-3">
@@ -551,7 +690,13 @@ function resAmount(id: string) {
         <div v-if="!s.activeActions.length && !s.evolutionRitual" class="text-sm text-slate-500">{{ t("game.idle") }}</div>
         <div v-for="a in s.activeActions" :key="a.id" class="mb-3 rounded-lg bg-black/40 p-2 text-xs">
           <div class="font-medium">
-            {{ a.kind === "research" ? t("game.actionResearch") : t("game.actionUpgrade") }}
+            {{
+              a.kind === "research"
+                ? t("game.actionResearch")
+                : a.kind === "building_upgrade" && a.fromLevel <= 0
+                  ? t("game.actionBuild")
+                  : t("game.actionUpgrade")
+            }}
             {{
               a.kind === "research"
                 ? game.TECHS.find((tech) => tech.id === a.techId)?.emoji
@@ -569,6 +714,26 @@ function resAmount(id: string) {
           </div>
         </div>
       </aside>
+    </div>
+
+    <div
+      v-if="unlockOpen"
+      class="fixed inset-0 z-[51] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      role="dialog"
+    >
+      <div class="max-w-md rounded-2xl border border-emerald-500/30 bg-slate-900 p-6 shadow-2xl">
+        <h3 class="mb-3 text-lg font-semibold text-emerald-200">{{ t("game.unlockTitle") }}</h3>
+        <ul class="list-inside list-disc space-y-1 text-sm text-slate-200">
+          <li v-for="(line, i) in unlockLines" :key="i">{{ line }}</li>
+        </ul>
+        <button
+          type="button"
+          class="mt-5 w-full rounded-lg bg-emerald-600 py-2 font-medium text-white hover:bg-emerald-500"
+          @click="unlockOpen = false"
+        >
+          {{ t("game.unlockDismiss") }}
+        </button>
+      </div>
     </div>
 
     <div

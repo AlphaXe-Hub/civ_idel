@@ -9,7 +9,15 @@ const EraId = z.enum([
   "industrial",
   "modern",
 ]);
-const BuildingId = z.enum(["hut", "lumberCamp", "stonePit"]);
+const BuildingId = z.enum([
+  "hut",
+  "lumberCamp",
+  "stonePit",
+  "library",
+  "clayWorks",
+  "foundry",
+  "coalShaft",
+]);
 const TechId = z.enum(["fire", "tools", "agriculture"]);
 const QuestId = z.enum([
   "q_gather_food",
@@ -91,6 +99,7 @@ export const SaveGameSchema = z.object({
       }),
     )
     .max(200),
+  autoUpgradeBuildingIds: z.array(BuildingId).max(8).default([]),
   evolutionRitual: z
     .object({
       startedAt: z.number(),
