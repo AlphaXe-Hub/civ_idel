@@ -127,14 +127,22 @@ export interface QuestDef {
 export type RelicQuality = "common" | "rare" | "epic" | "legendary";
 
 /** 尤里卡触发的临时产出倍率（与 bonusModifiers 分离，由 aggregate 汇总并 cap） */
-export interface Civ6ActiveBuff {
-  id: string;
-  untilMs: number;
-  kind: "temp_prod_mult";
-  resource: ResourceId;
-  /** 额外乘在 productionMultiplier 上（例如 1.04） */
-  mult: number;
-}
+export type Civ6ActiveBuff =
+  | {
+      id: string;
+      untilMs: number;
+      kind: "temp_prod_mult";
+      resource: ResourceId;
+      /** 额外乘在 productionMultiplier 上（例如 1.04） */
+      mult: number;
+    }
+  | {
+      id: string;
+      untilMs: number;
+      kind: "temp_all_prod_mult";
+      /** 全资源同乘（例如 1.4） */
+      mult: number;
+    };
 
 /**
  * 文明6 风格扩展存档（尤里卡 / 伟人 / 遗物 + 图鉴）
@@ -156,6 +164,8 @@ export interface Civ6State {
   staticProdAdd: Partial<Record<ResourceId, number>>;
   /** 遗物/伟人等给予的仓库加算（直接加到 baseStorageCap 之后） */
   staticStorageAdd: Partial<Record<ResourceId, number>>;
+  /** 尤里卡「概率类」永久加算（与 tick 基础概率线性叠加，由配置限幅） */
+  eurekaRateAdd?: number;
 }
 
 export interface GameState {

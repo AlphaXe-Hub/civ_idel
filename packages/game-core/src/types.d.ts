@@ -12,13 +12,18 @@ export type TechId = "fire" | "tools" | "agriculture";
 export type QuestId = "q_gather_food" | "q_build_hut" | "q_research_fire" | "q_upgrade_hut2" | "q_evolve_tribal";
 export type ActionKind = "research" | "building_upgrade";
 export type RelicQuality = "common" | "rare" | "epic" | "legendary";
-export interface Civ6ActiveBuff {
+export type Civ6ActiveBuff = {
     id: string;
     untilMs: number;
     kind: "temp_prod_mult";
     resource: ResourceId;
     mult: number;
-}
+} | {
+    id: string;
+    untilMs: number;
+    kind: "temp_all_prod_mult";
+    mult: number;
+};
 export interface Civ6State {
     rngSeed: number;
     seenEurekaIds: string[];
@@ -38,6 +43,7 @@ export interface Civ6State {
     counters: Record<string, number>;
     staticProdAdd: Partial<Record<ResourceId, number>>;
     staticStorageAdd: Partial<Record<ResourceId, number>>;
+    eurekaRateAdd?: number;
 }
 export type ActiveAction = {
     id: string;

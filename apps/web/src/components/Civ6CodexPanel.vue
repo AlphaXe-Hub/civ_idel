@@ -26,7 +26,15 @@ function unlockedRelic(id: string) {
 }
 
 function trTitle(i18nKey: string, fallback: string) {
-  return te(i18nKey) ? t(i18nKey) : fallback;
+  if (!i18nKey?.trim() || !te(i18nKey)) return fallback;
+  const s = String(t(i18nKey)).trim();
+  if (!s || s === i18nKey) return fallback;
+  return s;
+}
+
+function relicQualityLabel(q: RelicQuality) {
+  const key = `civ6.quality.${q}`;
+  return te(key) ? String(t(key)) : q;
 }
 
 function greatLevel(id: string) {
@@ -89,6 +97,9 @@ function eraOk(minEra: (typeof EUREKA_DEFS)[number]["minEra"]) {
         <div class="mt-1 font-medium text-slate-200">
           {{ greatLevel(d.id) > 0 ? trTitle(d.i18nKey, d.title) : "？" }}
         </div>
+        <p v-if="greatLevel(d.id) > 0 && d.roleTag" class="mt-0.5 text-[11px] leading-snug text-slate-500">
+          {{ d.roleType }} · {{ d.roleTag }}
+        </p>
         <button
           v-if="eraOk(d.minEra) && greatLevel(d.id) < d.maxLevel"
           type="button"

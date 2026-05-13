@@ -39,6 +39,7 @@ export function ensureGameStateDefaults(state: GameState): void {
     if (!c.counters || typeof c.counters !== "object") c.counters = {};
     if (!c.staticProdAdd || typeof c.staticProdAdd !== "object") c.staticProdAdd = {};
     if (!c.staticStorageAdd || typeof c.staticStorageAdd !== "object") c.staticStorageAdd = {};
+    if (typeof c.eurekaRateAdd !== "number" || !Number.isFinite(c.eurekaRateAdd)) c.eurekaRateAdd = 0;
     if (typeof c.rngSeed !== "number" || !Number.isFinite(c.rngSeed)) c.rngSeed = 0x9e3779b9;
   }
 }

@@ -77,13 +77,21 @@ const Civ6Schema = z.object({
   seenEurekaIds: z.array(z.string().max(16)).max(48),
   activeBuffs: z
     .array(
-      z.object({
-        id: z.string().max(20),
-        untilMs: z.number(),
-        kind: z.literal("temp_prod_mult"),
-        resource: ResourceId,
-        mult: z.number().finite().min(1).max(2),
-      }),
+      z.discriminatedUnion("kind", [
+        z.object({
+          id: z.string().max(20),
+          untilMs: z.number(),
+          kind: z.literal("temp_prod_mult"),
+          resource: ResourceId,
+          mult: z.number().finite().min(1).max(2),
+        }),
+        z.object({
+          id: z.string().max(20),
+          untilMs: z.number(),
+          kind: z.literal("temp_all_prod_mult"),
+          mult: z.number().finite().min(1).max(2),
+        }),
+      ]),
     )
     .max(24),
   greatPeople: z.record(z.string().max(12), z.object({ level: z.number().int().min(0).max(20) })),
@@ -103,6 +111,7 @@ const Civ6Schema = z.object({
   counters: z.record(z.string().max(32), z.number().finite().nonnegative().max(1e12)),
   staticProdAdd: z.record(z.string().max(12), z.number().finite().min(0).max(0.5)),
   staticStorageAdd: z.record(z.string().max(12), z.number().finite().min(0).max(500)),
+  eurekaRateAdd: z.number().finite().min(0).max(2).optional(),
 });
 
 export const SaveGameSchema = z.object({

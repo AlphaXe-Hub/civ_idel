@@ -15,6 +15,7 @@ export {
 } from "./defs.js";
 export {
   applyEurekaDef,
+  civ6EurekaLinkMultipliers,
   civ6GreatPersonEurekaBonus,
   civ6GreatUpgradeCostFactor,
   civ6ProductionAddFraction,

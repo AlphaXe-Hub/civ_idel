@@ -11,5 +11,6 @@ export function createEmptyCiv6State(seed = 0x9e3779b9): Civ6State {
     counters: {},
     staticProdAdd: {},
     staticStorageAdd: {},
+    eurekaRateAdd: 0,
   };
 }

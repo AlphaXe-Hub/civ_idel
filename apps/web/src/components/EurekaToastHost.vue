@@ -11,7 +11,10 @@ const current = computed(() => game.civ6Toasts[0] ?? null);
 function titleOf() {
   const c = current.value;
   if (!c) return "";
-  return te(c.i18nKey) ? t(c.i18nKey) : c.title;
+  if (!c.i18nKey?.trim() || !te(c.i18nKey)) return c.title;
+  const s = String(t(c.i18nKey)).trim();
+  if (!s || s === c.i18nKey) return c.title;
+  return s;
 }
 </script>
 
