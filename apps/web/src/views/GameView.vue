@@ -4,6 +4,7 @@ import {
   canPay,
   eraIndex,
   getResource,
+  maxActionSlots,
   nextEra,
   scaledDurationMs,
   type BuildingDef,
@@ -31,6 +32,14 @@ const tabs = computed(() => [
 ]);
 
 const s = computed(() => game.state);
+
+const visibleResourceIds = computed(() => {
+  const st = s.value;
+  if (!st) return [] as (keyof typeof game.RESOURCE_MAP)[];
+  return (Object.keys(game.RESOURCE_MAP) as (keyof typeof game.RESOURCE_MAP)[]).filter(
+    (rid) => eraIndex(st.currentEra) >= eraIndex(game.RESOURCE_MAP[rid].minEra),
+  );
+});
 
 const evolveCheck = computed(() => (s.value ? game.canEvolve(s.value) : { ok: false as const, reason: undefined as string | undefined }));
 
@@ -246,21 +255,34 @@ function resAmount(id: string) {
         <span class="text-2xl" aria-hidden="true">{{ game.ERA_MAP[s.currentEra].emoji }}</span>
         <div>
           <div class="text-sm font-semibold">{{ trEraName(s.currentEra) }}</div>
-          <div class="text-xs text-slate-400">{{ t("game.queueLine", { n: s.activeActions.length }) }}</div>
+          <div class="text-xs text-slate-400">
+            {{ t("game.queueLine", { n: s.activeActions.length, max: maxActionSlots(s) }) }}
+          </div>
           <div
-            v-if="game.timeScale !== 1"
-            class="mt-0.5 inline-block rounded bg-amber-500/25 px-1.5 py-0.5 text-[10px] font-medium text-amber-200"
-            :title="t('game.timeScaleTitle')"
+            v-if="game.timeScale !== 1 || game.queueTimeScale !== 1"
+            class="mt-0.5 flex flex-wrap gap-1"
           >
-            {{ t("game.timeScaleBadge", { n: game.timeScale }) }}
+            <span
+              v-if="game.timeScale !== 1"
+              class="inline-block rounded bg-amber-500/25 px-1.5 py-0.5 text-[10px] font-medium text-amber-200"
+              :title="t('game.timeScaleTitle')"
+            >
+              {{ t("game.timeScaleBadge", { n: game.timeScale }) }}
+            </span>
+            <span
+              v-if="game.queueTimeScale !== 1 && game.queueTimeScale !== game.timeScale"
+              class="inline-block rounded bg-sky-500/25 px-1.5 py-0.5 text-[10px] font-medium text-sky-200"
+              :title="t('game.queueTimeScaleTitle')"
+            >
+              {{ t("game.queueTimeScaleBadge", { n: game.queueTimeScale }) }}
+            </span>
           </div>
         </div>
       </div>
       <div class="flex flex-wrap gap-3 text-sm">
         <div
-          v-for="rid in ['food', 'wood', 'stone', 'knowledge'] as const"
+          v-for="rid in visibleResourceIds"
           :key="rid"
-          v-show="eraIndex(s.currentEra) >= eraIndex(game.RESOURCE_MAP[rid].minEra)"
           class="flex items-center gap-1 rounded-full bg-black/30 px-3 py-1"
         >
           <span>{{ game.RESOURCE_MAP[rid].emoji }}</span>
@@ -362,7 +384,7 @@ function resAmount(id: string) {
                 !canAffordUpgrade(b)
                   ? t('game.resInsufficient')
                   : !game.canStartAction(s)
-                    ? t('game.queueFullTitle')
+                    ? t('game.queueFullTitle', { max: maxActionSlots(s) })
                     : t('game.upgradeTimeTitle', { sec: nextUpgradeDurationSec(b) })
               "
               @click="game.upgradeBuilding(b.id)"
@@ -411,7 +433,7 @@ function resAmount(id: string) {
                       !canAffordResearch(tech)
                         ? t('game.resInsufficient')
                         : !game.canStartAction(s)
-                          ? t('game.queueFullTitle')
+                          ? t('game.queueFullTitle', { max: maxActionSlots(s) })
                           : t('game.researchTimeTitle', { sec: researchDurationSec(tech) })
                     "
                     @click="game.research(tech.id)"

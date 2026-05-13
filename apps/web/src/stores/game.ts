@@ -15,8 +15,10 @@ import {
   RESOURCE_MAP,
   storageCaps,
   nextEra,
-  setTimeScale,
+  configureGameSpeed,
   getTimeScale,
+  getQueueTimeScale,
+  ensureAllResourceKeys,
 } from "@civ-idle/game-core";
 import type { GameState, BuildingId, TechId } from "@civ-idle/game-core";
 import { defineStore } from "pinia";
@@ -31,8 +33,10 @@ export const useGameStore = defineStore("game", () => {
   const loading = ref(false);
   const syncError = ref<string | null>(null);
   const offlineMessage = ref<string | null>(null);
-  /** 当前调试时间倍率（来自 /game-speed.json） */
+  /** 当前被动时间倍率（来自 /game-speed.json 的 timeScale） */
   const timeScale = ref(getTimeScale());
+  /** 队列动作耗时倍率（queueTimeScale，缺省与 timeScale 相同） */
+  const queueTimeScale = ref(getQueueTimeScale());
   let saveTimer: ReturnType<typeof setInterval> | null = null;
   let tickTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -51,13 +55,20 @@ export const useGameStore = defineStore("game", () => {
     try {
       const res = await fetch("/game-speed.json", { cache: "no-store" });
       if (!res.ok) return;
-      const j = (await res.json()) as { timeScale?: unknown };
-      const n = Number(j.timeScale);
-      if (Number.isFinite(n) && n > 0) setTimeScale(n);
+      const j = (await res.json()) as { timeScale?: unknown; queueTimeScale?: unknown };
+      const payload: { timeScale?: number; queueTimeScale?: number } = {};
+      const ts = Number(j.timeScale);
+      if (Number.isFinite(ts) && ts > 0) payload.timeScale = ts;
+      if (j.queueTimeScale !== undefined && j.queueTimeScale !== null) {
+        const qs = Number(j.queueTimeScale);
+        if (Number.isFinite(qs) && qs > 0) payload.queueTimeScale = qs;
+      }
+      if (Object.keys(payload).length) configureGameSpeed(payload);
     } catch {
       /* 默认 1 */
     }
     timeScale.value = getTimeScale();
+    queueTimeScale.value = getQueueTimeScale();
   }
 
   async function bootstrap() {
@@ -77,6 +88,7 @@ export const useGameStore = defineStore("game", () => {
           res.save.lastSyncedAt,
           t,
         );
+        ensureAllResourceKeys(s);
         state.value = s;
         const minutes = Math.floor(appliedMs / 60000);
         if (appliedMs > 5000 && completedSummary.length) {
@@ -97,15 +109,21 @@ export const useGameStore = defineStore("game", () => {
     }
   }
 
+  function tickIntervalMs() {
+    const factor = Math.max(getTimeScale(), getQueueTimeScale());
+    return Math.max(50, Math.min(500, Math.round(500 / factor)));
+  }
+
   function startLoops() {
-    tickTimer = setInterval(() => {
+    const tick = () => {
       const s = state.value;
       if (!s) return;
       const gameNow = nowMs();
       const next = tickOnline(s, gameNow, lastTickGameMs.value);
       state.value = next;
       lastTickGameMs.value = gameNow;
-    }, 500);
+    };
+    tickTimer = setInterval(tick, tickIntervalMs());
     saveTimer = setInterval(() => void pushSave(), 30_000);
   }
 
@@ -192,5 +210,6 @@ export const useGameStore = defineStore("game", () => {
     storageCaps,
     nextEra,
     timeScale,
+    queueTimeScale,
   };
 });

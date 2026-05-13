@@ -80,3 +80,8 @@ export function nextEra(current: EraDef["id"]): EraDef["id"] | null {
 export function eraIndex(id: EraDef["id"]): number {
   return ERAS.find((e) => e.id === id)?.order ?? 0;
 }
+
+/** 时代越高，可同时进行的建造/研究队列越多（上限 8） */
+export function maxActionSlotsForEra(era: EraDef["id"]): number {
+  return Math.min(8, 2 + eraIndex(era));
+}

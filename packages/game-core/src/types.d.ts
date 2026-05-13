@@ -1,4 +1,4 @@
-export type ResourceId = "food" | "wood" | "stone" | "knowledge";
+export type ResourceId = "food" | "wood" | "stone" | "knowledge" | "clay" | "metal" | "coal";
 export type EraId = "primitive" | "tribal" | "agricultural" | "classical" | "industrial" | "modern";
 export type BuildingId = "hut" | "lumberCamp" | "stonePit";
 export type TechId = "fire" | "tools" | "agriculture";

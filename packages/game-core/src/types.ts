@@ -1,6 +1,13 @@
 import type Decimal from "break_infinity.js";
 
-export type ResourceId = "food" | "wood" | "stone" | "knowledge";
+export type ResourceId =
+  | "food"
+  | "wood"
+  | "stone"
+  | "knowledge"
+  | "clay"
+  | "metal"
+  | "coal";
 
 export type EraId =
   | "primitive"

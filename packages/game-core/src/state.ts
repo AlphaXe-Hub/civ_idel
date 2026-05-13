@@ -1,8 +1,18 @@
 import { D, dZero } from "./bn.js";
 import { BUILDINGS } from "./config/buildings.js";
-import type { BuildingId, GameState, TechId } from "./types.js";
+import type { BuildingId, GameState, ResourceId, TechId } from "./types.js";
 
 const SAVE_VERSION = 1;
+
+const ALL_RESOURCE_IDS: ResourceId[] = ["food", "wood", "stone", "knowledge", "clay", "metal", "coal"];
+
+/** 旧存档缺字段时补齐，避免 UI / 校验缺键 */
+export function ensureAllResourceKeys(state: GameState): void {
+  for (const id of ALL_RESOURCE_IDS) {
+    const v = state.resources[id];
+    if (v == null || v === "") state.resources[id] = "0";
+  }
+}
 
 /** 新用户初始存档（与 `apps/api/src/newGameDefaults.ts` 的 `createInitialSave` 需保持同步） */
 export function createInitialState(nowMs: number): GameState {
@@ -25,6 +35,9 @@ export function createInitialState(nowMs: number): GameState {
       wood: "18",
       stone: "12",
       knowledge: "0",
+      clay: "0",
+      metal: "0",
+      coal: "0",
     },
     buildings,
     techStatus,

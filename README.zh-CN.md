@@ -9,11 +9,13 @@ Melvor Idle 风格的放置文明进化游戏：Vue 3 前端 + Fastify API + sql
 根目录 [`config/game-speed.json`](config/game-speed.json) 与 [`apps/web/public/game-speed.json`](apps/web/public/game-speed.json) 内容保持一致即可；**本地 Vite** 读取 `public` 下文件，**Docker** 镜像内会再复制 `config/game-speed.json` 覆盖到站点根目录，且 Compose 已把该文件 **挂载** 到容器，改宿主文件后 **刷新浏览器** 即可（无需重建前端镜像）。
 
 ```json
-{ "timeScale": 10 }
+{ "timeScale": 10, "queueTimeScale": 10 }
 ```
 
+- 可只写 `timeScale`：被动产出与队列耗时使用同一倍率。
+- 增加 `queueTimeScale`（可选）：单独控制研究 / 升级 / 进化仪式的耗时倍率，与被动倍率脱钩。
 - `1`：正常速度。
-- `>1`：被动产出按倍率加快；研究、建筑升级、进化仪式耗时按 `1/timeScale` 缩短（便于调试）。
+- `>1`：被动产出按 `timeScale` 加快；队列耗时按 `queueTimeScale`（未写则同 `timeScale`）缩短。
 - 合法范围 `0.01`～`100`（超出会被夹紧）。
 
 顶栏在 `timeScale !== 1` 时会显示 **⏱×N** 提示。

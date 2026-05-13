@@ -1,18 +1,45 @@
 /**
- * 调试用全局时间倍率：>1 时被动产出更快，研究/升级/进化仪式耗时更短。
- * 由前端在启动时从 `/game-speed.json` 读取后调用 `setTimeScale`。
+ * 调试用全局时间倍率（由 `/game-speed.json` 驱动）：
+ * - `timeScale`：被动产出等效时间（越大越快）
+ * - `queueTimeScale`（可选）：研究 / 建筑升级 / 进化仪式耗时倍率；缺省则与 `timeScale` 相同
  */
 const MIN = 0.01;
 const MAX = 100;
-let timeScale = 1;
-export function getTimeScale() {
-    return timeScale;
+let passiveScale = 1;
+let queueScale = 1;
+function clamp(v) {
+    return Math.min(MAX, Math.max(MIN, v));
 }
-/** @param v 例如 10 表示约为正常速度的 10 倍（被动与计时均参与） */
+/** 被动产出等效倍率 */
+export function getTimeScale() {
+    return passiveScale;
+}
+/** 队列动作（研究、升级、进化仪式）耗时倍率 */
+export function getQueueTimeScale() {
+    return queueScale;
+}
+/** 兼容旧接口：同时设置被动与队列倍率 */
 export function setTimeScale(v) {
     if (!Number.isFinite(v) || v <= 0)
         return;
-    timeScale = Math.min(MAX, Math.max(MIN, v));
+    const c = clamp(v);
+    passiveScale = c;
+    queueScale = c;
+}
+/**
+ * 从 `game-speed.json` 应用倍率。
+ * - 仅 `timeScale`：被动与队列相同
+ * - 同时提供 `queueTimeScale`：可单独加快/减慢队列相对被动
+ */
+export function configureGameSpeed(opts) {
+    if (opts.timeScale != null && Number.isFinite(opts.timeScale) && opts.timeScale > 0) {
+        passiveScale = clamp(Number(opts.timeScale));
+        if (opts.queueTimeScale == null)
+            queueScale = passiveScale;
+    }
+    if (opts.queueTimeScale != null && Number.isFinite(opts.queueTimeScale) && opts.queueTimeScale > 0) {
+        queueScale = clamp(Number(opts.queueTimeScale));
+    }
 }
 /** 被动结算：等效经过的毫秒（放大倍率） */
 export function scaledPassiveDtMs(dtMs) {
@@ -20,10 +47,10 @@ export function scaledPassiveDtMs(dtMs) {
         return 0;
     return dtMs * getTimeScale();
 }
-/** 队列 / 仪式：配置时长按倍率缩短 */
+/** 队列 / 仪式：配置时长按队列倍率缩短 */
 export function scaledDurationMs(baseMs) {
     if (baseMs <= 0)
         return 0;
-    return Math.max(1, Math.round(baseMs / getTimeScale()));
+    return Math.max(1, Math.round(baseMs / getQueueTimeScale()));
 }
 //# sourceMappingURL=game-speed.js.map

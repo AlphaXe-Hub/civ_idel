@@ -1,3 +1,4 @@
 {
-  "timeScale": 60
+  "timeScale": 300,
+  "queueTimeScale": 300
 }

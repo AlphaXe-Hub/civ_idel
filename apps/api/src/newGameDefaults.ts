@@ -14,6 +14,9 @@ export function createInitialSave(nowMs: number): SaveGame {
       wood: "18",
       stone: "12",
       knowledge: "0",
+      clay: "0",
+      metal: "0",
+      coal: "0",
     },
     buildings: {
       hut: { level: 1 },

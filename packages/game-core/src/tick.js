@@ -30,6 +30,15 @@ function passiveRatesPerSecond(state) {
         const k = D(0.02).mul(eraIndex(state.currentEra));
         rates.knowledge = rates.knowledge.add(k);
     }
+    if (eraIndex(state.currentEra) >= eraIndex("agricultural")) {
+        rates.clay = rates.clay.add(D(0.02));
+    }
+    if (eraIndex(state.currentEra) >= eraIndex("classical")) {
+        rates.metal = rates.metal.add(D(0.012));
+    }
+    if (eraIndex(state.currentEra) >= eraIndex("industrial")) {
+        rates.coal = rates.coal.add(D(0.01));
+    }
     return rates;
 }
 function storageCaps(state) {

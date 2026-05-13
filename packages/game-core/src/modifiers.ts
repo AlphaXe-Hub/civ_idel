@@ -1,5 +1,6 @@
 import { D, dOne } from "./bn.js";
 import { BUILDINGS } from "./config/buildings.js";
+import { eraIndex } from "./config/eras.js";
 import { TECHS } from "./config/techs.js";
 import type { GameState, ResourceId } from "./types.js";
 
@@ -26,6 +27,15 @@ export function baseStorageCap(resource: ResourceId, state: GameState) {
   }
   if (resource === "knowledge" && state.currentEra !== "primitive") {
     cap = cap.add(D(50));
+  }
+  if (resource === "clay" && eraIndex(state.currentEra) >= eraIndex("agricultural")) {
+    cap = cap.add(D(100));
+  }
+  if (resource === "metal" && eraIndex(state.currentEra) >= eraIndex("classical")) {
+    cap = cap.add(D(120));
+  }
+  if (resource === "coal" && eraIndex(state.currentEra) >= eraIndex("industrial")) {
+    cap = cap.add(D(150));
   }
   return cap;
 }

@@ -1,5 +1,6 @@
 import { D, dOne } from "./bn.js";
 import { BUILDINGS } from "./config/buildings.js";
+import { eraIndex } from "./config/eras.js";
 import { TECHS } from "./config/techs.js";
 /** 科技 + 任务奖励修饰符对某资源产出的总乘区 */
 export function productionMultiplier(state, resource) {
@@ -27,6 +28,15 @@ export function baseStorageCap(resource, state) {
     }
     if (resource === "knowledge" && state.currentEra !== "primitive") {
         cap = cap.add(D(50));
+    }
+    if (resource === "clay" && eraIndex(state.currentEra) >= eraIndex("agricultural")) {
+        cap = cap.add(D(100));
+    }
+    if (resource === "metal" && eraIndex(state.currentEra) >= eraIndex("classical")) {
+        cap = cap.add(D(120));
+    }
+    if (resource === "coal" && eraIndex(state.currentEra) >= eraIndex("industrial")) {
+        cap = cap.add(D(150));
     }
     return cap;
 }

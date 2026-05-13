@@ -1,6 +1,6 @@
 import { BUILDING_MAP } from "./config/buildings.js";
 import { scaledDurationMs } from "./config/game-speed.js";
-import { ERA_MAP, nextEra, eraIndex } from "./config/eras.js";
+import { ERA_MAP, nextEra, eraIndex, maxActionSlotsForEra } from "./config/eras.js";
 import { TECH_MAP } from "./config/techs.js";
 import {
   buildingLevel,
@@ -11,16 +11,18 @@ import {
 } from "./state.js";
 import type { ActiveAction, BuildingId, GameState, TechId } from "./types.js";
 
-const MAX_ACTION_SLOTS = 2;
+export function maxActionSlots(state: GameState): number {
+  return maxActionSlotsForEra(state.currentEra);
+}
+
+export function canStartAction(state: GameState): boolean {
+  return state.activeActions.length < maxActionSlots(state);
+}
 
 function newActionId(): string {
   const c = globalThis.crypto;
   if (c?.randomUUID) return c.randomUUID();
   return `a-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-export function canStartAction(state: GameState): boolean {
-  return state.activeActions.length < MAX_ACTION_SLOTS;
 }
 
 export function startResearch(

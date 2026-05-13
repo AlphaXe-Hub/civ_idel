@@ -39,6 +39,16 @@ function passiveRatesPerSecond(state: GameState): Record<ResourceId, import("bre
     rates.knowledge = rates.knowledge!.add(k);
   }
 
+  if (eraIndex(state.currentEra) >= eraIndex("agricultural")) {
+    rates.clay = rates.clay!.add(D(0.02));
+  }
+  if (eraIndex(state.currentEra) >= eraIndex("classical")) {
+    rates.metal = rates.metal!.add(D(0.012));
+  }
+  if (eraIndex(state.currentEra) >= eraIndex("industrial")) {
+    rates.coal = rates.coal!.add(D(0.01));
+  }
+
   return rates as Record<ResourceId, import("break_infinity.js").default>;
 }
 
