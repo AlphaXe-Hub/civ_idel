@@ -10,6 +10,7 @@ import {
   passiveRatesPerSecond,
   scaledDurationMs,
   type BuildingDef,
+  type GameState,
   type TechDef,
 } from "@civ-idle/game-core";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
@@ -152,6 +153,10 @@ const libraryDef = game.BUILDINGS.find((b) => b.id === "library");
 
 function scrollToBuilding(id: string) {
   document.getElementById(`building-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function buildingEraUnlocked(st: GameState, b: BuildingDef) {
+  return eraIndex(st.currentEra) >= eraIndex(b.minEra);
 }
 
 const nextEraId = computed(() => (s.value ? nextEra(s.value.currentEra) : null));
@@ -428,7 +433,7 @@ function resAmount(id: string) {
                   {{ t("game.storageCapShort") }} {{ fmt(game.storageCaps(s)[rid].toString()) }}
                 </div>
                 <div
-                  v-if="rid === 'knowledge' && libraryDef && s && eraIndex(s.currentEra) >= eraIndex(libraryDef.minEra)"
+                  v-if="rid === 'knowledge' && libraryDef && s"
                   class="mt-1.5"
                 >
                   <button
@@ -455,21 +460,39 @@ function resAmount(id: string) {
                 v-for="b in game.BUILDINGS"
                 :id="'building-' + b.id"
                 :key="b.id"
-                v-show="eraIndex(s.currentEra) >= eraIndex(b.minEra)"
-                class="rounded-2xl border border-white/10 bg-black/30 p-4 shadow-lg backdrop-blur"
+                class="rounded-2xl border p-4 shadow-lg backdrop-blur"
+                :class="
+                  buildingEraUnlocked(s, b)
+                    ? 'border-white/10 bg-black/30'
+                    : 'border-amber-900/40 bg-black/20 opacity-80'
+                "
               >
-                <div class="mb-2 flex items-center justify-between">
+                <div class="mb-2 flex items-center justify-between gap-2">
                   <div class="text-3xl" aria-hidden="true">{{ b.emoji }}</div>
-                  <div class="text-right text-sm text-slate-400">Lv. {{ s.buildings[b.id]?.level ?? 0 }}</div>
+                  <div class="flex flex-col items-end gap-0.5 text-right">
+                    <div class="text-sm text-slate-400">Lv. {{ s.buildings[b.id]?.level ?? 0 }}</div>
+                    <div
+                      v-if="!buildingEraUnlocked(s, b)"
+                      class="max-w-[10rem] rounded-md bg-amber-950/50 px-1.5 py-0.5 text-[10px] font-medium leading-tight text-amber-200/95"
+                    >
+                      {{ t("game.buildingUnlockAtEra", { era: trEraName(b.minEra) }) }}
+                    </div>
+                  </div>
                 </div>
                 <h3 class="text-lg font-semibold">{{ trBuildingName(b) }}</h3>
                 <p class="mt-2 text-xs text-slate-400">
                   <span v-for="(rate, res) in b.production" :key="String(res)" class="mr-2">
                     {{ game.RESOURCE_MAP[res as keyof typeof game.RESOURCE_MAP].emoji }}
-                    {{ (rate * (s.buildings[b.id]?.level ?? 0)).toFixed(2) }}{{ t("common.perSecBase") }}
+                    <template v-if="buildingEraUnlocked(s, b)">
+                      {{ (rate * (s.buildings[b.id]?.level ?? 0)).toFixed(2) }}{{ t("common.perSecBase") }}
+                    </template>
+                    <template v-else> {{ rate.toFixed(3) }}{{ t("game.perLevelAtLv1Short") }} </template>
                   </span>
                 </p>
-                <div class="mt-3 rounded-lg border border-white/5 bg-black/35 px-2.5 py-2 text-xs">
+                <div
+                  v-if="buildingEraUnlocked(s, b)"
+                  class="mt-3 rounded-lg border border-white/5 bg-black/35 px-2.5 py-2 text-xs"
+                >
                   <div class="mb-1.5 font-medium text-slate-300">
                     {{
                       buildingLevel(s, b.id) === 0
@@ -491,19 +514,29 @@ function resAmount(id: string) {
                     </span>
                   </div>
                 </div>
+                <div
+                  v-else
+                  class="mt-3 rounded-lg border border-amber-900/25 bg-amber-950/20 px-2.5 py-2 text-xs text-amber-100/85"
+                >
+                  {{ t("game.buildingLockedHint", { era: trEraName(b.minEra) }) }}
+                </div>
                 <div class="mt-3 flex gap-2">
                   <button
                     type="button"
-                    :disabled="!game.canStartAction(s) || !canAffordUpgrade(b)"
+                    :disabled="
+                      !buildingEraUnlocked(s, b) || !game.canStartAction(s) || !canAffordUpgrade(b)
+                    "
                     class="min-w-0 flex-1 rounded-xl bg-amber-600/90 py-2 text-sm font-medium hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
                     :title="
-                      !canAffordUpgrade(b)
-                        ? t('game.resInsufficient')
-                        : !game.canStartAction(s)
-                          ? t('game.queueFullTitle', { max: maxActionSlots(s) })
-                          : buildingLevel(s, b.id) === 0
-                            ? t('game.buildTimeTitle', { sec: nextUpgradeDurationSec(b) })
-                            : t('game.upgradeTimeTitle', { sec: nextUpgradeDurationSec(b) })
+                      !buildingEraUnlocked(s, b)
+                        ? t('game.buildingLockedTitle', { era: trEraName(b.minEra) })
+                        : !canAffordUpgrade(b)
+                          ? t('game.resInsufficient')
+                          : !game.canStartAction(s)
+                            ? t('game.queueFullTitle', { max: maxActionSlots(s) })
+                            : buildingLevel(s, b.id) === 0
+                              ? t('game.buildTimeTitle', { sec: nextUpgradeDurationSec(b) })
+                              : t('game.upgradeTimeTitle', { sec: nextUpgradeDurationSec(b) })
                     "
                     @click="game.upgradeBuilding(b.id)"
                   >
@@ -512,16 +545,19 @@ function resAmount(id: string) {
                   </button>
                   <button
                     type="button"
-                    class="shrink-0 rounded-xl px-3 py-2 text-base transition hover:bg-white/15"
+                    :disabled="!buildingEraUnlocked(s, b)"
+                    class="shrink-0 rounded-xl px-3 py-2 text-base transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-30"
                     :class="
                       game.isAutoUpgradeBuilding(b.id)
                         ? 'bg-emerald-900/40 ring-2 ring-emerald-400/50'
                         : 'bg-white/10'
                     "
                     :title="
-                      game.isAutoUpgradeBuilding(b.id)
-                        ? t('game.autoUpgradeTitleOff')
-                        : t('game.autoUpgradeTitleOn')
+                      !buildingEraUnlocked(s, b)
+                        ? t('game.buildingLockedTitle', { era: trEraName(b.minEra) })
+                        : game.isAutoUpgradeBuilding(b.id)
+                          ? t('game.autoUpgradeTitleOff')
+                          : t('game.autoUpgradeTitleOn')
                     "
                     @click="game.toggleAutoUpgradeBuilding(b.id)"
                   >
