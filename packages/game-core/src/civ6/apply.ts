@@ -243,6 +243,28 @@ export function civ6StorageFlatAdd(state: GameState, resource: ResourceId): impo
   return D(Math.min(400, n));
 }
 
+/** 伟人下一级升级花费预览（不修改 state；与 tryUpgradeGreatPerson 内计算一致） */
+export function previewGreatPersonUpgradeCost(
+  state: GameState,
+  id: string,
+): { cost: Partial<Record<ResourceId, string>>; factor: number } | null {
+  const c = state.civ6;
+  if (!c) return null;
+  const def = GREAT_PERSON_MAP[id];
+  if (!def) return null;
+  if (eraIndex(state.currentEra) < eraIndex(def.minEra)) return null;
+  const cur = c.greatPeople[id]?.level ?? 0;
+  if (cur >= def.maxLevel) return null;
+  const f = civ6GreatUpgradeCostFactor(state);
+  const cost: Partial<Record<ResourceId, string>> = {};
+  for (const [k, v] of Object.entries(def.perLevelCost)) {
+    if (!v) continue;
+    const rid = k as ResourceId;
+    cost[rid] = D(v).mul(f).toString();
+  }
+  return { cost, factor: f };
+}
+
 export function tryUpgradeGreatPerson(
   state: GameState,
   id: string,

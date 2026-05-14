@@ -105,6 +105,8 @@ export default {
     civ6EurekaTitle: "Eureka!",
     civ6EurekaOk: "Nice",
     civ6GreatUpgrade: "Upgrade great person",
+    civ6GreatUpgradeCost: "Next level cost",
+    civ6GreatCostRelicMod: "Relic cost modifier ×{f}",
     civ6RelicOwnedHint: "Relics drop from Eurekas and other rolls. Unlocked entries show names and counts.",
     civ6RelicOwnedCount: "Owned: {n}",
     civ6RelicInventory: "Inventory",

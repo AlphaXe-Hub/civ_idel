@@ -105,6 +105,8 @@ export default {
     civ6EurekaTitle: "尤里卡时刻！",
     civ6EurekaOk: "太棒了",
     civ6GreatUpgrade: "升级伟人",
+    civ6GreatUpgradeCost: "下一级花费",
+    civ6GreatCostRelicMod: "遗物对花费修正 ×{f}",
     civ6RelicOwnedHint: "遗物通过尤里卡等随机获得；已解锁条目显示名称与持有数。",
     civ6RelicOwnedCount: "持有 {n} 件",
     civ6RelicInventory: "背包",

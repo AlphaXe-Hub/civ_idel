@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import {
+  D,
   EUREKA_DEFS,
   GREAT_PERSON_DEFS,
   RELIC_DEFS,
   RESOURCE_MAP,
   eraIndex,
+  previewGreatPersonUpgradeCost,
   qualityMultiplier,
   type EurekaDef,
   type GreatPersonDef,
@@ -54,6 +56,49 @@ function eraOk(minEra: (typeof EUREKA_DEFS)[number]["minEra"]) {
   const st = s.value;
   if (!st) return false;
   return eraIndex(st.currentEra) >= eraIndex(minEra);
+}
+
+function fmtAmt(n: string) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return n;
+  if (x >= 1e6) return x.toExponential(2);
+  if (x >= 1000) return x.toFixed(0);
+  if (x >= 10) return x.toFixed(1);
+  return x.toFixed(2);
+}
+
+function greatCanUpgrade(d: GreatPersonDef) {
+  return eraOk(d.minEra) && greatLevel(d.id) < d.maxLevel;
+}
+
+function greatUpgradeCostRows(d: GreatPersonDef) {
+  const st = s.value;
+  if (!st?.civ6) return [];
+  const p = previewGreatPersonUpgradeCost(st, d.id);
+  if (!p) return [];
+  return (Object.keys(p.cost) as ResourceId[])
+    .filter((rid) => p.cost[rid])
+    .map((rid) => {
+      const need = p.cost[rid] ?? "0";
+      const have = st.resources[rid] ?? "0";
+      return {
+        rid,
+        emoji: RESOURCE_MAP[rid]?.emoji ?? "",
+        name: resName(rid),
+        needF: fmtAmt(need),
+        haveF: fmtAmt(have),
+        met: D(have).gte(D(need)),
+      };
+    });
+}
+
+function greatUpgradeRelicFactor(d: GreatPersonDef): string | null {
+  const st = s.value;
+  if (!st?.civ6) return null;
+  const p = previewGreatPersonUpgradeCost(st, d.id);
+  if (!p) return null;
+  if (Math.abs(p.factor - 1) < 1e-9) return null;
+  return p.factor.toFixed(4);
 }
 
 function resName(rid: ResourceId) {
@@ -244,8 +289,29 @@ function relicDefLines(d: RelicDef): string[] {
             <li v-for="(line, i) in greatEffectLines(d)" :key="i">{{ line }}</li>
           </ul>
         </template>
+        <template v-if="greatCanUpgrade(d)">
+          <div class="mt-2 border-t border-white/10 pt-2 text-[10px] font-medium uppercase tracking-wide text-slate-500">
+            {{ t("game.civ6GreatUpgradeCost") }}
+          </div>
+          <p v-if="greatUpgradeRelicFactor(d)" class="mt-0.5 text-[10px] text-slate-500">
+            {{ t("game.civ6GreatCostRelicMod", { f: greatUpgradeRelicFactor(d) }) }}
+          </p>
+          <div
+            v-for="row in greatUpgradeCostRows(d)"
+            :key="`${d.id}-${row.rid}`"
+            class="mt-1 flex items-center justify-between gap-2 text-[11px]"
+            :class="row.met ? 'text-slate-300' : 'text-rose-300/90'"
+          >
+            <span>{{ row.emoji }} {{ row.name }}</span>
+            <span class="shrink-0 font-mono tabular-nums">
+              <span :class="row.met ? 'text-emerald-400/90' : ''">{{ row.haveF }}</span>
+              <span class="text-slate-500"> / </span>
+              <span>{{ row.needF }}</span>
+            </span>
+          </div>
+        </template>
         <button
-          v-if="eraOk(d.minEra) && greatLevel(d.id) < d.maxLevel"
+          v-if="greatCanUpgrade(d)"
           type="button"
           class="mt-2 w-full rounded-lg bg-violet-600/90 py-1.5 text-xs font-medium hover:bg-violet-500"
           @click="game.upgradeGreatPerson(d.id)"

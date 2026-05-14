@@ -20,6 +20,7 @@ export {
   civ6GreatUpgradeCostFactor,
   civ6ProductionAddFraction,
   civ6StorageFlatAdd,
+  previewGreatPersonUpgradeCost,
   tryUpgradeGreatPerson,
 } from "./apply.js";
 export { civ6ProcessTime, civ6DispatchTrigger } from "./processTime.js";

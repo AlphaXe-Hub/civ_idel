@@ -105,6 +105,8 @@ export default {
     civ6EurekaTitle: "ユリイカ！",
     civ6EurekaOk: "了解",
     civ6GreatUpgrade: "偉人を強化",
+    civ6GreatUpgradeCost: "次のレベル費用",
+    civ6GreatCostRelicMod: "遺物による費用補正 ×{f}",
     civ6RelicOwnedHint: "遺物はユリイカなどでランダム入手。解放済みは名称と所持数を表示。",
     civ6RelicOwnedCount: "所持 {n}",
     civ6RelicInventory: "所持一覧",
