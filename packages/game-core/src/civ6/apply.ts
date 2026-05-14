@@ -94,8 +94,11 @@ export function applyEurekaDef(state: GameState, def: EurekaDef, atTimeMs: numbe
 
   const { rewardMult } = civ6EurekaLinkMultipliers(state);
 
+  const eurekaFirstDiscover = !c.codexUnlocked.eureka.includes(def.id);
   addCodex(c, "eureka", def.id);
-  pushCiv6Toast({ kind: "eureka", id: def.id, emoji: def.emoji, title: def.title, i18nKey: def.i18nKey });
+  if (eurekaFirstDiscover) {
+    pushCiv6Toast({ kind: "eureka", id: def.id, emoji: def.emoji, title: def.title, i18nKey: def.i18nKey });
+  }
 
   const markOnce = () => {
     if (def.once && !c.seenEurekaIds.includes(def.id)) c.seenEurekaIds.push(def.id);

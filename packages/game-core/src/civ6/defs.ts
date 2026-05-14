@@ -62,6 +62,8 @@ export interface GreatPersonDef {
   perLevelProdAdd: Partial<Record<ResourceId, number>>;
   perLevelStorageAdd: number;
   eurekaChanceAdd: number;
+  /** feature.md 文档 Lv1–3 倍率（仅典藏展示） */
+  displayTiers: [number, number, number];
 }
 
 export interface RelicDef {
@@ -167,6 +169,7 @@ export const GREAT_PERSON_DEFS: GreatPersonDef[] = RAW_GREAT_ROWS.map((row, i) =
     perLevelProdAdd: greatPerLevelProd(row),
     perLevelStorageAdd: greatPerLevelStorage(row),
     eurekaChanceAdd: greatEurekaChanceAdd(row),
+    displayTiers: [row.v1, row.v2, row.v3],
   };
 });
 

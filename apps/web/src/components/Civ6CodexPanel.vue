@@ -3,9 +3,14 @@ import {
   EUREKA_DEFS,
   GREAT_PERSON_DEFS,
   RELIC_DEFS,
+  RESOURCE_MAP,
   eraIndex,
   qualityMultiplier,
+  type EurekaDef,
+  type GreatPersonDef,
+  type RelicDef,
   type RelicQuality,
+  type ResourceId,
 } from "@civ-idle/game-core";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
@@ -50,6 +55,129 @@ function eraOk(minEra: (typeof EUREKA_DEFS)[number]["minEra"]) {
   if (!st) return false;
   return eraIndex(st.currentEra) >= eraIndex(minEra);
 }
+
+function resName(rid: ResourceId) {
+  const key = `content.resources.${rid}.name`;
+  return te(key) ? String(t(key)) : rid;
+}
+
+function eraName(era: string) {
+  const key = `content.eras.${era}.name`;
+  return te(key) ? String(t(key)) : era;
+}
+
+function eurekaEffectLines(d: EurekaDef): string[] {
+  const e = d.effect;
+  const once = d.once ? `（${t("game.civ6CodexOnceTag")}）` : "";
+  const lines: string[] = [];
+  if (e.kind === "temp_prod_mult") {
+    const rid = e.resource;
+    const em = RESOURCE_MAP[rid]?.emoji ?? "";
+    lines.push(
+      t("game.civ6CodexBuffTempRes", {
+        emoji: em,
+        name: resName(rid),
+        mult: e.mult.toFixed(2),
+        sec: Math.round(e.durationMs / 1000),
+      }),
+    );
+  } else if (e.kind === "temp_all_prod_mult") {
+    lines.push(
+      t("game.civ6CodexBuffTempAll", {
+        mult: e.mult.toFixed(2),
+        sec: Math.round(e.durationMs / 1000),
+      }),
+    );
+  } else if (e.kind === "instant_resource") {
+    const parts = (Object.keys(e.resources) as ResourceId[])
+      .filter((k) => e.resources[k])
+      .map((k) => `${RESOURCE_MAP[k]?.emoji ?? ""}${resName(k)} ${e.resources[k]}`);
+    lines.push(t("game.civ6CodexInstantRes"));
+    if (parts.length) lines.push(parts.join(" · "));
+  } else if (e.kind === "roll_relic") {
+    lines.push(t("game.civ6CodexRollRelic", { bias: e.qualityBias.toFixed(2) }));
+  } else if (e.kind === "static_prod_add") {
+    lines.push(t("game.civ6CodexStaticProd"));
+    const parts = (Object.keys(e.add) as ResourceId[])
+      .filter((k) => e.add[k])
+      .map((k) => `${RESOURCE_MAP[k]?.emoji ?? ""}${resName(k)} +${e.add[k]}`);
+    if (parts.length) lines.push(parts.join(" · "));
+  } else if (e.kind === "static_storage_add") {
+    lines.push(t("game.civ6CodexStaticStorage"));
+    const parts = (Object.keys(e.add) as ResourceId[])
+      .filter((k) => e.add[k])
+      .map((k) => `${RESOURCE_MAP[k]?.emoji ?? ""}${resName(k)} +${e.add[k]}`);
+    if (parts.length) lines.push(parts.join(" · "));
+  } else if (e.kind === "evolution_ritual_advance") {
+    lines.push(t("game.civ6CodexEvolSkip", { pct: Math.round(e.frac * 100) }));
+  } else if (e.kind === "research_progress_advance") {
+    lines.push(t("game.civ6CodexResearchSkip", { pct: Math.round(e.frac * 100) }));
+  } else if (e.kind === "eureka_base_rate_add") {
+    lines.push(t("game.civ6CodexEurekaRate", { v: e.add.toFixed(3) }));
+  } else if (e.kind === "bonus_all_resources_mult") {
+    lines.push(t("game.civ6CodexBonusAll", { mult: e.mult.toFixed(3) }));
+  }
+  if (once && lines.length) lines[0] = `${lines[0]}${once}`;
+  return lines;
+}
+
+function greatEffectLines(d: GreatPersonDef): string[] {
+  const lv = greatLevel(d.id);
+  if (lv <= 0) return [];
+  const lines: string[] = [];
+  lines.push(
+    t("game.civ6GpTiers", {
+      a: d.displayTiers[0]!.toFixed(2),
+      b: d.displayTiers[1]!.toFixed(2),
+      c: d.displayTiers[2]!.toFixed(2),
+    }),
+  );
+  for (const rid of Object.keys(d.perLevelProdAdd) as ResourceId[]) {
+    const v = d.perLevelProdAdd[rid];
+    if (v == null || v <= 0) continue;
+    lines.push(
+      t("game.civ6GpPerLevelFrac", {
+        label: `${RESOURCE_MAP[rid]?.emoji ?? ""}${resName(rid)}`,
+        pct: (v * 100).toFixed(3),
+      }),
+    );
+  }
+  lines.push(
+    t("game.civ6GpStorageLv", {
+      n: d.perLevelStorageAdd,
+      total: d.perLevelStorageAdd * lv,
+    }),
+  );
+  lines.push(
+    t("game.civ6GpEurekaTick", {
+      coef: d.eurekaChanceAdd.toExponential(2),
+    }),
+  );
+  lines.push(
+    t("game.civ6GpLinkLine", {
+      era: eraName(d.eurekaLink.era),
+      pc: (1 + d.eurekaLink.chanceUp).toFixed(2),
+      pr: (1 + d.eurekaLink.rewardBonus).toFixed(2),
+    }),
+  );
+  return lines;
+}
+
+function relicDefLines(d: RelicDef): string[] {
+  const lines: string[] = [];
+  lines.push(t("game.civ6RelicProdBase"));
+  const parts = (Object.keys(d.baseProdAdd) as ResourceId[])
+    .filter((k) => d.baseProdAdd[k])
+    .map((k) => {
+      const v = d.baseProdAdd[k] ?? 0;
+      return `${RESOURCE_MAP[k]?.emoji ?? ""}${resName(k)} +${(v * 100).toFixed(2)}%/件`;
+    });
+  if (parts.length) lines.push(parts.join(" · "));
+  lines.push(t("game.civ6RelicStorageBase", { n: d.baseStorageAdd }));
+  lines.push(t("game.civ6RelicGreatCost", { f: d.greatCostFactor.toFixed(4) }));
+  lines.push(t("game.civ6RelicQualityMult"));
+  return lines;
+}
 </script>
 
 <template>
@@ -75,12 +203,20 @@ function eraOk(minEra: (typeof EUREKA_DEFS)[number]["minEra"]) {
       <article
         v-for="d in EUREKA_DEFS"
         :key="d.id"
-        class="rounded-xl border border-white/10 bg-black/30 p-3 text-center text-sm backdrop-blur"
+        class="rounded-xl border border-white/10 bg-black/30 p-3 text-left text-sm backdrop-blur"
       >
-        <div class="text-3xl">{{ unlockedEureka(d.id) && eraOk(d.minEra) ? d.emoji : "❓" }}</div>
-        <div class="mt-1 font-medium text-slate-200">
+        <div class="text-center text-3xl">{{ unlockedEureka(d.id) && eraOk(d.minEra) ? d.emoji : "❓" }}</div>
+        <div class="mt-1 text-center font-medium text-slate-200">
           {{ unlockedEureka(d.id) ? trTitle(d.i18nKey, d.title) : "？" }}
         </div>
+        <template v-if="unlockedEureka(d.id)">
+          <div class="mt-2 border-t border-white/10 pt-2 text-[10px] font-medium uppercase tracking-wide text-slate-500">
+            {{ t("game.civ6CodexEffectTitle") }}
+          </div>
+          <ul class="mt-1 space-y-0.5 text-[11px] leading-snug text-slate-400">
+            <li v-for="(line, i) in eurekaEffectLines(d)" :key="i">{{ line }}</li>
+          </ul>
+        </template>
       </article>
     </div>
 
@@ -88,7 +224,7 @@ function eraOk(minEra: (typeof EUREKA_DEFS)[number]["minEra"]) {
       <article
         v-for="d in GREAT_PERSON_DEFS"
         :key="d.id"
-        class="rounded-xl border border-white/10 bg-black/30 p-3 backdrop-blur"
+        class="rounded-xl border border-white/10 bg-black/30 p-3 text-left backdrop-blur"
       >
         <div class="flex items-start justify-between gap-2">
           <span class="text-3xl">{{ eraOk(d.minEra) && greatLevel(d.id) > 0 ? d.emoji : "❓" }}</span>
@@ -100,6 +236,14 @@ function eraOk(minEra: (typeof EUREKA_DEFS)[number]["minEra"]) {
         <p v-if="greatLevel(d.id) > 0 && d.roleTag" class="mt-0.5 text-[11px] leading-snug text-slate-500">
           {{ d.roleType }} · {{ d.roleTag }}
         </p>
+        <template v-if="greatLevel(d.id) > 0">
+          <div class="mt-2 border-t border-white/10 pt-2 text-[10px] font-medium uppercase tracking-wide text-slate-500">
+            {{ t("game.civ6CodexEffectTitle") }}
+          </div>
+          <ul class="mt-1 space-y-0.5 text-[11px] leading-snug text-slate-400">
+            <li v-for="(line, i) in greatEffectLines(d)" :key="i">{{ line }}</li>
+          </ul>
+        </template>
         <button
           v-if="eraOk(d.minEra) && greatLevel(d.id) < d.maxLevel"
           type="button"
@@ -117,15 +261,23 @@ function eraOk(minEra: (typeof EUREKA_DEFS)[number]["minEra"]) {
         <article
           v-for="d in RELIC_DEFS"
           :key="d.id"
-          class="rounded-xl border border-white/10 bg-black/30 p-3 text-center text-sm backdrop-blur"
+          class="rounded-xl border border-white/10 bg-black/30 p-3 text-left text-sm backdrop-blur"
         >
-          <div class="text-3xl">{{ unlockedRelic(d.id) && eraOk(d.minEra) ? d.emoji : "❓" }}</div>
-          <div class="mt-1 font-medium text-slate-200">
+          <div class="text-center text-3xl">{{ unlockedRelic(d.id) && eraOk(d.minEra) ? d.emoji : "❓" }}</div>
+          <div class="mt-1 text-center font-medium text-slate-200">
             {{ unlockedRelic(d.id) ? trTitle(d.i18nKey, d.title) : "？" }}
           </div>
-          <div v-if="unlockedRelic(d.id)" class="mt-1 text-[10px] text-slate-500">
+          <div v-if="unlockedRelic(d.id)" class="mt-1 text-center text-[10px] text-slate-500">
             {{ t("game.civ6RelicOwnedCount", { n: relicCountForDef(d.id) }) }}
           </div>
+          <template v-if="unlockedRelic(d.id)">
+            <div class="mt-2 border-t border-white/10 pt-2 text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              {{ t("game.civ6CodexEffectTitle") }}
+            </div>
+            <ul class="mt-1 space-y-0.5 text-[11px] leading-snug text-slate-400">
+              <li v-for="(line, i) in relicDefLines(d)" :key="i">{{ line }}</li>
+            </ul>
+          </template>
         </article>
       </div>
       <div v-if="s.civ6?.relics.length" class="rounded-xl border border-white/10 bg-black/25 p-3 text-xs">
